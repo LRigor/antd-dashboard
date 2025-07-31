@@ -1,39 +1,39 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { 
-  Form, 
-  Input, 
-  Button, 
-  Checkbox, 
-  Tabs, 
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  Form,
+  Input,
+  Button,
+  Checkbox,
+  Tabs,
   Space,
   Typography,
   Divider,
   Row,
   Col,
-  message
-} from 'antd';
-import { 
-  UserOutlined, 
-  LockOutlined, 
-  EyeInvisibleOutlined, 
+  message,
+} from "antd";
+import {
+  UserOutlined,
+  LockOutlined,
+  EyeInvisibleOutlined,
   EyeTwoTone,
   AlipayCircleOutlined,
   TaobaoCircleOutlined,
   WeiboCircleOutlined,
   AudioOutlined,
-  SettingOutlined
-} from '@ant-design/icons';
-import Image from 'next/image';
-import { useAuth } from '../contexts/AuthContext';
+  SettingOutlined,
+} from "@ant-design/icons";
+import Image from "next/image";
+import { useAuth } from "../contexts/AuthContext";
 
 const { Title, Text } = Typography;
 
 export default function LoginPage() {
   const [form] = Form.useForm();
-  const [activeTab, setActiveTab] = useState('account');
+  const [activeTab, setActiveTab] = useState("account");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -42,7 +42,7 @@ export default function LoginPage() {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
-      const redirectTo = searchParams.get('redirect') || '/dashboard';
+      const redirectTo = searchParams.get("redirect") || "/dashboard";
       router.push(redirectTo);
     }
   }, [isAuthenticated, authLoading, router, searchParams]);
@@ -51,13 +51,13 @@ export default function LoginPage() {
     try {
       setLoading(true);
       await login(values);
-      message.success('Login successful!');
-      
-      const redirectTo = searchParams.get('redirect') || '/dashboard';
+      message.success("Login successful!");
+
+      const redirectTo = searchParams.get("redirect") || "/dashboard";
       router.push(redirectTo);
     } catch (error) {
-      console.error('Login error:', error);
-      message.error('Login failed. Please check your credentials.');
+      console.error("Login error:", error);
+      message.error("Login failed. Please check your credentials.");
     } finally {
       setLoading(false);
     }
@@ -65,8 +65,8 @@ export default function LoginPage() {
 
   const items = [
     {
-      key: 'account',
-      label: 'Account Login',
+      key: "account",
+      label: "Account Login",
       children: (
         <Form
           form={form}
@@ -77,32 +77,29 @@ export default function LoginPage() {
         >
           <Form.Item
             name="username"
-            rules={[{ required: true, message: 'Please input your username!' }]}
+            rules={[{ required: true, message: "Please input your username!" }]}
           >
-            <Input 
-              prefix={<UserOutlined />} 
+            <Input
+              prefix={<UserOutlined />}
               placeholder="Username: admin or user"
             />
           </Form.Item>
-          
+
           <Form.Item
             name="password"
-            rules={[{ required: true, message: 'Please input your password!' }]}
+            rules={[{ required: true, message: "Please input your password!" }]}
           >
             <Input.Password
               prefix={<LockOutlined />}
               placeholder="Password: ant.design"
-              iconRender={(visible) => (visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />)}
+              iconRender={(visible) =>
+                visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />
+              }
             />
           </Form.Item>
-          
+
           <Form.Item>
-            <Button 
-              type="primary" 
-              htmlType="submit" 
-              block 
-              loading={loading}
-            >
+            <Button type="primary" htmlType="submit" block loading={loading}>
               Login
             </Button>
           </Form.Item>
@@ -114,71 +111,85 @@ export default function LoginPage() {
   // Show loading while checking authentication
   if (authLoading) {
     return (
-      <div style={{ 
-        minHeight: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center' 
-      }}>
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
         <div>Loading...</div>
       </div>
     );
   }
 
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      display: 'flex', 
-      alignItems: 'center', 
-      justifyContent: 'center',
-      padding: '20px'
-    }}>
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        padding: "20px",
+        marginTop: "32px",
+      }}
+    >
       <div>
         {/* Logo and Title */}
-        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            marginBottom: '16px' 
-          }}>
+        <div style={{ textAlign: "center", marginBottom: "40px" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: "16px",
+              gap: "16px",
+            }}
+          >
             <Image src="/logo.svg" alt="logo" width={44} height={44} />
-            <Title level={3} style={{ margin: 0 }}>Ant Design</Title>
+            <Title
+              level={3}
+              style={{ margin: 0, fontSize: "32px", fontWeight: "bold" }}
+            >
+              Ant Design
+            </Title>
           </div>
           <Text type="secondary">
-            Ant Design is the most influential web design specification in Xihu district
+            Ant Design is the most influential web design specification in Xihu
+            district
           </Text>
         </div>
 
         {/* Login Form */}
-        <Tabs 
-          activeKey={activeTab} 
+        <Tabs
+          activeKey={activeTab}
           onChange={setActiveTab}
           items={items}
           centered
         />
-
-        {/* Footer */}
-        <div style={{ 
-          textAlign: 'center', 
-          marginTop: '40px',
-          color: '#8c8c8c',
-          fontSize: '12px'
-        }}>
-          <div style={{ marginBottom: '8px' }}>
-            <Space>
-              <span>
-                <AudioOutlined style={{ marginRight: '4px' }} />
-                Ant Design Pro
-              </span>
-              <span>
-                <SettingOutlined style={{ marginRight: '4px' }} />
-                Ant Design
-              </span>
-            </Space>
-          </div>
-          <div>© Powered by Ant Design</div>
+      </div>
+      {/* Footer */}
+      <div
+        style={{
+          textAlign: "center",
+          color: "#8c8c8c",
+          fontSize: "12px",
+          position: "fixed",
+          bottom: "20px",
+        }}
+      >
+        <div style={{ marginBottom: "8px" }}>
+          <Space>
+            <span>
+              <AudioOutlined style={{ marginRight: "4px" }} />
+              Ant Design Pro
+            </span>
+            <span>
+              <SettingOutlined style={{ marginRight: "4px" }} />
+              Ant Design
+            </span>
+          </Space>
         </div>
+        <div>© Powered by Ant Design</div>
       </div>
     </div>
   );

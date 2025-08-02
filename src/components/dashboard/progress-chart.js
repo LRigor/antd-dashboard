@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useLayoutEffect } from "react";
 import { Row, Col, Typography, Dropdown, Button, Progress } from "antd";
 import { MoreOutlined } from "@ant-design/icons";
 const { Text } = Typography;
@@ -6,6 +6,8 @@ const { Text } = Typography;
 export default function ProgressChart() {
   const [selectedStore, setSelectedStore] = useState("Stores 7");
   const [visibleStores, setVisibleStores] = useState([]);
+  const [storeMenuVisible, setStoreMenuVisible] = useState(false);
+  const [isReady, setIsReady] = useState(false);
   const storesRowRef = useRef(null);
   const smoothScrollTo = useCallback((targetScrollLeft) => {
     if (!storesRowRef.current) return;
@@ -13,7 +15,7 @@ export default function ProgressChart() {
     const container = storesRowRef.current;
     const startScrollLeft = container.scrollLeft;
     const distance = targetScrollLeft - startScrollLeft;
-    container.scrollLeft = startScrollLeft + distance
+    container.scrollLeft = startScrollLeft + distance;
   }, []);
 
   const handleWheel = useCallback(
@@ -32,9 +34,8 @@ export default function ProgressChart() {
   }, []);
 
   useEffect(() => {
-    updateVisibleStores();
-
     const container = storesRowRef.current;
+    console.log(container);
     if (container) {
       container.addEventListener("scroll", handleScroll, { passive: true });
       container.addEventListener("wheel", handleWheel, { passive: false });
@@ -46,30 +47,66 @@ export default function ProgressChart() {
     }
   }, [handleWheel, handleScroll]);
 
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      updateVisibleStores();
+    };
+
+    window.addEventListener("resize", handleResize, { passive: true });
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
+  // Initial update of visible stores
+  useLayoutEffect(() => {
+    if (storesRowRef.current) {
+      const container = storesRowRef.current;
+      const storeItems = container.querySelectorAll("[data-store-item]");
+      
+      if (storeItems.length === storesData.length) {
+        updateVisibleStores();
+        setIsReady(true);
+      } else {
+        const timer = setTimeout(() => {
+          updateVisibleStores();
+          setIsReady(true);
+        }, 50);
+        
+        return () => clearTimeout(timer);
+      }
+    }
+  }, []);
+
+
   const updateVisibleStores = () => {
     if (storesRowRef.current) {
       const container = storesRowRef.current;
       const containerWidth = container.clientWidth;
       const scrollLeft = container.scrollLeft;
 
-      const storeItems = container.querySelectorAll('[data-store-item]');
+      const storeItems = container.querySelectorAll("[data-store-item]");
       if (storeItems.length === 0) return;
 
       const itemWidth = 100;
-      
+
       const visibleStores = [];
       storeItems.forEach((item, index) => {
         const itemLeft = item.offsetLeft;
         const itemRight = itemLeft + itemWidth;
-        
-        const isVisible = itemLeft < scrollLeft + containerWidth && itemRight > scrollLeft;
-        
+
+        const isVisible =
+          itemLeft < scrollLeft + containerWidth && itemRight > scrollLeft;
+
         if (isVisible) {
           visibleStores.push(storesData[index].name);
         }
       });
-      
+
       setVisibleStores(visibleStores);
+      setStoreMenuVisible(visibleStores.length < storesData.length);
     }
   };
 
@@ -131,7 +168,7 @@ export default function ProgressChart() {
       smoothScrollTo(targetScrollLeft);
     }
   };
-
+  console.log(storeMenuVisible);
   return (
     <div
       style={{
@@ -139,6 +176,7 @@ export default function ProgressChart() {
         position: "relative",
         display: "flex",
         flexDirection: "row",
+        width: storeMenuVisible ? "auto" : "100%",
       }}
     >
       <style>
@@ -170,6 +208,8 @@ export default function ProgressChart() {
             "inset 20px 0 20px -20px rgba(0,0,0,0.1), inset -20px 0 30px -20px rgba(0,0,0,0.1)",
           scrollbarWidth: "thin",
           scrollbarColor: "var(--border-color) transparent",
+          width: storeMenuVisible ? "auto" : "100%",
+          justifyContent: "space-between",
         }}
         className="custom-scrollbar"
       >
@@ -222,29 +262,31 @@ export default function ProgressChart() {
           </Col>
         ))}
       </Row>
-      <Col style={{ flex: "0 0 auto", marginLeft: "8px" }}>
-        <Dropdown
-          menu={{
-            items: storeMenuItems,
-            onClick: handleStoreSelect,
-          }}
-          trigger={["click"]}
-        >
-          <Button
-            type="text"
-            style={{
-              height: "100%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
+      {storeMenuVisible && (
+        <Col style={{ flex: "0 0 auto", marginLeft: "8px" }}>
+          <Dropdown
+            menu={{
+              items: storeMenuItems,
+              onClick: handleStoreSelect,
             }}
+            trigger={["click"]}
           >
-            <div style={{ textAlign: "center" }}>
-              <MoreOutlined />
-            </div>
-          </Button>
-        </Dropdown>
-      </Col>
+            <Button
+              type="text"
+              style={{
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <div style={{ textAlign: "center" }}>
+                <MoreOutlined />
+              </div>
+            </Button>
+          </Dropdown>
+        </Col>
+      )}
     </div>
   );
 }

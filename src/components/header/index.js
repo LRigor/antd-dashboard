@@ -1,4 +1,4 @@
-import { Layout, Typography, Dropdown, Space, Avatar } from "antd";
+import { Layout, Typography, Dropdown, Space, Avatar, Card } from "antd";
 import Image from "next/image";
 import { UserOutlined, LogoutOutlined } from "@ant-design/icons";
 import ThemeToggle from "../ThemeToggle";
@@ -39,21 +39,20 @@ export default function Header() {
     <Layout.Header
       style={{
         padding: "0 24px",
+        position: "sticky",
+        top: 0,
+        zIndex: 1000,
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
-        borderBottom: "1px solid #f0f0f0",
-        position: "sticky",
         backgroundColor: "var(--background-color)",
-        top: 0,
-        zIndex: 1000,
+        borderBottom: "1px solid var(--border-color)",
       }}
     >
       <div style={{ display: "flex", alignItems: "center" }}>
         <Image src="/logo.svg" alt="logo" width={32} height={32} />
         <Title level={4} style={{ margin: 0, marginLeft: 16 }}>
-          分析页
+          Ant Design
         </Title>
       </div>
 

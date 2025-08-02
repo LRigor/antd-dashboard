@@ -6,7 +6,7 @@ import { Layout } from "antd";
 import { useAuth } from "@/contexts/AuthContext";
 import Sidebar from "@/components/sidebar";
 import Header from "@/components/header";
-
+import Dashboard from "@/components/dashboard";
 export default function DashboardPage() {
   const router = useRouter();
   const { isAuthenticated, loading } = useAuth();
@@ -41,6 +41,7 @@ export default function DashboardPage() {
       <Header />
       <Layout>
         <Sidebar />
+        <Dashboard />
       </Layout>
     </Layout>
   );

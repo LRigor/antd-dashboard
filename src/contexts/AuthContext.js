@@ -29,26 +29,43 @@ export const AuthProvider = ({ children }) => {
   // Initialize authentication state
   const initializeAuth = async () => {
     try {
+      console.log('Initializing auth...');
       const token = tokenUtils.getToken();
+      console.log('Retrieved token:', token ? 'exists' : 'null');
       
-      if (token && tokenUtils.isTokenValid(token)) {
-        const payload = tokenUtils.getTokenPayload(token);
-        setUser(payload);
-        setIsAuthenticated(true);
-      } else if (token) {
-        // Token exists but is invalid, try to refresh
-        try {
-          await authAPI.refreshToken();
-          const newToken = tokenUtils.getToken();
-          const payload = tokenUtils.getTokenPayload(newToken);
+      if (token) {
+        console.log('Token exists, checking validity...');
+        const isValid = tokenUtils.isTokenValid(token);
+        console.log('Token valid:', isValid);
+        
+        if (isValid) {
+          const payload = tokenUtils.getTokenPayload(token);
+          console.log('Token payload:', payload);
           setUser(payload);
           setIsAuthenticated(true);
-        } catch (error) {
-          // Refresh failed, clear tokens
-          tokenUtils.removeTokens();
-          setUser(null);
-          setIsAuthenticated(false);
+        } else {
+          console.log('Token is invalid, attempting refresh...');
+          // Token exists but is invalid, try to refresh
+          try {
+            await authAPI.refreshToken();
+            const newToken = tokenUtils.getToken();
+            console.log('Refresh successful, new token:', newToken ? 'exists' : 'null');
+            const payload = tokenUtils.getTokenPayload(newToken);
+            console.log('New token payload:', payload);
+            setUser(payload);
+            setIsAuthenticated(true);
+          } catch (error) {
+            console.error('Token refresh failed:', error);
+            // Refresh failed, clear tokens
+            tokenUtils.removeTokens();
+            setUser(null);
+            setIsAuthenticated(false);
+          }
         }
+      } else {
+        console.log('No token found, user not authenticated');
+        setUser(null);
+        setIsAuthenticated(false);
       }
     } catch (error) {
       console.error('Auth initialization error:', error);

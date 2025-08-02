@@ -13,7 +13,7 @@ import {
   Divider,
   Row,
   Col,
-  message,
+  App,
 } from "antd";
 import {
   UserOutlined,
@@ -38,6 +38,7 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login, isAuthenticated, loading: authLoading } = useAuth();
+  const { message } = App.useApp();
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -49,6 +50,7 @@ export default function LoginPage() {
 
   const onFinish = async (values) => {
     try {
+      console.log('Form submitted with values:', values);
       setLoading(true);
       await login(values);
       message.success("Login successful!");
@@ -82,6 +84,7 @@ export default function LoginPage() {
             <Input
               prefix={<UserOutlined />}
               placeholder="Username: admin or user"
+              value="admin"
             />
           </Form.Item>
 
@@ -95,6 +98,7 @@ export default function LoginPage() {
               iconRender={(visible) =>
                 visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />
               }
+              value="ant.design"
             />
           </Form.Item>
 

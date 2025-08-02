@@ -1,5 +1,6 @@
 import { AuthProvider } from '../contexts/AuthContext';
 import { ThemeProvider } from '../contexts/ThemeContext';
+import { App as AntApp } from 'antd';
 import "./globals.css";
 
 export const metadata = {
@@ -13,7 +14,9 @@ export default function RootLayout({ children }) {
       <body>
         <ThemeProvider>
           <AuthProvider>
-            {children}
+            <AntApp>
+              {children}
+            </AntApp>
           </AuthProvider>
         </ThemeProvider>
       </body>

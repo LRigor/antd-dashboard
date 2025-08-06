@@ -6,23 +6,40 @@ import {
   LeftOutlined,
   RightOutlined,
 } from "@ant-design/icons";
+import { useRouter } from "next/navigation";
 
 export default function Sidebar() {
+  const router = useRouter();
   const menuItems = [
     {
       key: "dashboard",
       icon: <DashboardOutlined />,
       label: "系统",
       children: [
-        { key: "11", label: "菜单" },
-        { key: "12", label: "角色" },
-        { key: "13", label: "命名空间" },
-        { key: "14", label: "管理员" },
-        { key: "15", label: "登录日志" },
-        { key: "16", label: "词典" },
-        { key: "17", label: "操作日志" },
-        { key: "18", label: "文件" },
-        { key: "19", label: "白名单" },
+        { key: "11", label: "菜单", onClick: () => {
+          router.push("/system");
+        } },
+        { key: "12", label: "角色", onClick: () => {
+          router.push("/system");
+        } },
+        { key: "13", label: "命名空间", onClick: () => {
+          router.push("/system");
+        } },
+        { key: "14", label: "管理员", onClick: () => {
+          router.push("/system");
+        } },
+        { key: "15", label: "登录日志", onClick: () => {
+          router.push("/system");
+        } },
+        { key: "16", label: "词典", onClick: () => {
+          router.push("/system");
+        } },
+        { key: "17", label: "操作日志", onClick: () => {
+          router.push("/system");
+        } },
+        { key: "18", label: "文件", onClick: () => {
+          router.push("/system");
+        } },
       ],
     },
   ];

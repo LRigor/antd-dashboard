@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect } from 'react';
 import { tokenUtils, authAPI } from '../utils/auth';
+import { useRouter } from 'next/navigation';
 
 // Create the auth context
 const AuthContext = createContext();
@@ -17,6 +18,7 @@ export const useAuth = () => {
 
 // Auth provider component
 export const AuthProvider = ({ children }) => {
+  const router = useRouter();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -29,29 +31,21 @@ export const AuthProvider = ({ children }) => {
   // Initialize authentication state
   const initializeAuth = async () => {
     try {
-      console.log('Initializing auth...');
       const token = tokenUtils.getToken();
-      console.log('Retrieved token:', token ? 'exists' : 'null');
       
       if (token) {
-        console.log('Token exists, checking validity...');
         const isValid = tokenUtils.isTokenValid(token);
-        console.log('Token valid:', isValid);
         
         if (isValid) {
           const payload = tokenUtils.getTokenPayload(token);
-          console.log('Token payload:', payload);
           setUser(payload);
           setIsAuthenticated(true);
         } else {
-          console.log('Token is invalid, attempting refresh...');
           // Token exists but is invalid, try to refresh
           try {
             await authAPI.refreshToken();
             const newToken = tokenUtils.getToken();
-            console.log('Refresh successful, new token:', newToken ? 'exists' : 'null');
             const payload = tokenUtils.getTokenPayload(newToken);
-            console.log('New token payload:', payload);
             setUser(payload);
             setIsAuthenticated(true);
           } catch (error) {
@@ -63,12 +57,10 @@ export const AuthProvider = ({ children }) => {
           }
         }
       } else {
-        console.log('No token found, user not authenticated');
         setUser(null);
         setIsAuthenticated(false);
       }
     } catch (error) {
-      console.error('Auth initialization error:', error);
       tokenUtils.removeTokens();
       setUser(null);
       setIsAuthenticated(false);
@@ -116,17 +108,12 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Logout function
-  const logout = async () => {
-    try {
-      setLoading(true);
-      await authAPI.logout();
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      setUser(null);
-      setIsAuthenticated(false);
-      setLoading(false);
-    }
+  const logout = () => {
+    tokenUtils.removeTokens();
+    setUser(null);
+    setIsAuthenticated(false);
+    setLoading(false);
+    router.push('/');
   };
 
   // Update user data

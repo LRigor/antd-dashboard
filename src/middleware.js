@@ -12,10 +12,7 @@ const protectedRoutes = [
 const publicRoutes = [
   '/',
   '/login',
-  '/register',
-  '/api/auth/login',
-  '/api/auth/register',
-  '/api/auth/logout'
+  '/register'
 ];
 
 export function middleware(request) {
@@ -34,13 +31,8 @@ export function middleware(request) {
   // Get the token from cookies
   const token = request.cookies.get('auth-token')?.value;
   
-  console.log('Middleware - Path:', pathname);
-  console.log('Middleware - Is protected route:', isProtectedRoute);
-  console.log('Middleware - Token in cookies:', token ? 'exists' : 'null');
-  
   // If it's a protected route and no token exists, redirect to login
   if (isProtectedRoute && !token) {
-    console.log('Middleware - Redirecting to login (no token for protected route)');
     const loginUrl = new URL('/', request.url);
     loginUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(loginUrl);
@@ -48,13 +40,35 @@ export function middleware(request) {
   
   // If user has token and tries to access login/register, redirect to dashboard
   if (token && (pathname === '/' || pathname === '/login' || pathname === '/register')) {
-    console.log('Middleware - Redirecting to dashboard (authenticated user on auth pages)');
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
   
-  // Add token to request headers for API routes
-  if (pathname.startsWith('/api/') && token) {
-    console.log('Middleware - Adding token to API request headers');
+  // Forward only API requests to external API if NEXT_PUBLIC_API_URL is set
+  if (pathname.startsWith('/api/')) {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    
+    if (apiUrl && apiUrl !== request.nextUrl.origin) {
+      // Forward the API request to the external API
+      const externalUrl = new URL(pathname, apiUrl);
+      externalUrl.search = request.nextUrl.search;
+      
+      // Create headers for the external request
+      const requestHeaders = new Headers(request.headers);
+      if (token) {
+        requestHeaders.set('Authorization', `Bearer ${token}`);
+      }
+      
+      // Forward the request to external API
+      return NextResponse.rewrite(externalUrl, {
+        request: {
+          headers: requestHeaders,
+        },
+      });
+    }
+  }
+  
+  // Add token to headers for any route if available
+  if (token) {
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set('Authorization', `Bearer ${token}`);
     

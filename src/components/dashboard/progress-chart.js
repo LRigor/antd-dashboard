@@ -35,7 +35,6 @@ export default function ProgressChart() {
 
   useEffect(() => {
     const container = storesRowRef.current;
-    console.log(container);
     if (container) {
       container.addEventListener("scroll", handleScroll, { passive: true });
       container.addEventListener("wheel", handleWheel, { passive: false });
@@ -168,7 +167,7 @@ export default function ProgressChart() {
       smoothScrollTo(targetScrollLeft);
     }
   };
-  console.log(storeMenuVisible);
+
   return (
     <div
       style={{

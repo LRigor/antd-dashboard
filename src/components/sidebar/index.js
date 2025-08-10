@@ -1,49 +1,90 @@
 "use client";
 import { Layout, Menu, Card, Button } from "antd";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   DashboardOutlined,
   LeftOutlined,
   RightOutlined,
 } from "@ant-design/icons";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 export default function Sidebar() {
   const router = useRouter();
+  const pathname = usePathname();
+  const [collapsed, setCollapsed] = useState(false);
+
+  const handleCollapse = (collapsed) => {
+    setCollapsed(collapsed);
+  };
+
+  useEffect(() => {
+    if (pathname.match(/^\/system\/.*/)) {
+      setCollapsed(true);
+    }
+  }, [pathname]);
+
   const menuItems = [
     {
       key: "dashboard",
       icon: <DashboardOutlined />,
       label: "系统",
+      onClick: () => router.push("/dashboard"),
       children: [
-        { key: "11", label: "菜单", onClick: () => {
-          router.push("/system");
-        } },
-        { key: "12", label: "角色", onClick: () => {
-          router.push("/system");
-        } },
-        { key: "13", label: "命名空间", onClick: () => {
-          router.push("/system");
-        } },
-        { key: "14", label: "管理员", onClick: () => {
-          router.push("/system");
-        } },
-        { key: "15", label: "登录日志", onClick: () => {
-          router.push("/system");
-        } },
-        { key: "16", label: "词典", onClick: () => {
-          router.push("/system");
-        } },
-        { key: "17", label: "操作日志", onClick: () => {
-          router.push("/system");
-        } },
-        { key: "18", label: "文件", onClick: () => {
-          router.push("/system");
-        } },
+        { 
+          key: "menu", 
+          label: "菜单", 
+          onClick: () => router.push("/system/menu")
+        },
+        { 
+          key: "roles", 
+          label: "角色", 
+          onClick: () => router.push("/system/roles")
+        },
+        { 
+          key: "namespaces", 
+          label: "命名空间", 
+          onClick: () => router.push("/system/namespaces")
+        },
+        { 
+          key: "admins", 
+          label: "管理员", 
+          onClick: () => router.push("/system/admins")
+        },
+        { 
+          key: "login-logs", 
+          label: "登录日志", 
+          onClick: () => router.push("/system/login-logs")
+        },
+        { 
+          key: "dictionary", 
+          label: "词典", 
+          onClick: () => router.push("/system/dictionary")
+        },
+        { 
+          key: "operation-logs", 
+          label: "操作日志", 
+          onClick: () => router.push("/system/operation-logs")
+        },
+        { 
+          key: "files", 
+          label: "文件", 
+          onClick: () => router.push("/system/files")
+        },
       ],
     },
   ];
-  const [collapsed, setCollapsed] = useState(false);
+
+  // Determine selected key based on current pathname
+  const getSelectedKey = () => {
+    if (pathname === "/dashboard") return ["dashboard"];
+    if (pathname.startsWith("/system/")) {
+      const subPath = pathname.split("/")[2];
+      return [subPath];
+    }
+    if (pathname === "/system") return ["dashboard"];
+    return ["dashboard"];
+  };
+
   return (
     <>
       <style jsx>{`
@@ -107,7 +148,7 @@ export default function Sidebar() {
             <Button
               type="text"
               icon={!collapsed ? <LeftOutlined /> : <RightOutlined />}
-              onClick={() => setCollapsed(!collapsed)}
+              onClick={() => handleCollapse(!collapsed)}
               className="collapse-btn"
               style={{
                 position: "absolute",
@@ -124,7 +165,7 @@ export default function Sidebar() {
           </Card>
           <Menu
             mode="inline"
-            defaultSelectedKeys={["dashboard"]}
+            selectedKeys={getSelectedKey()}
             items={menuItems}
             style={{
               borderRight: 0,

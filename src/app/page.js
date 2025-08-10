@@ -50,7 +50,6 @@ export default function LoginPage() {
 
   const onFinish = async (values) => {
     try {
-      console.log('Form submitted with values:', values);
       setLoading(true);
       await login(values);
       message.success("Login successful!");
@@ -77,8 +76,14 @@ export default function LoginPage() {
           autoComplete="off"
           size="large"
         >
+          <Form.Item name="location" initialValue="japan" hidden>
+            <Input />
+          </Form.Item>
+          <Form.Item name="otp_code" initialValue="" hidden>
+            <Input />
+          </Form.Item>
           <Form.Item
-            name="username"
+            name="uname"
             rules={[{ required: true, message: "Please input your username!" }]}
           >
             <Input
@@ -89,16 +94,16 @@ export default function LoginPage() {
           </Form.Item>
 
           <Form.Item
-            name="password"
+            name="pass"
             rules={[{ required: true, message: "Please input your password!" }]}
           >
             <Input.Password
               prefix={<LockOutlined />}
-              placeholder="Password: ant.design"
+              placeholder="Password: 1"
               iconRender={(visible) =>
                 visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />
               }
-              value="ant.design"
+              value="1"
             />
           </Form.Item>
 

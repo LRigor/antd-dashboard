@@ -338,8 +338,8 @@ export default function Popular() {
     >
       {/* Summary Cards */}
       <Row gutter={16} style={{ marginBottom: "24px" }}>
-        {summaryData.map((item, index) => (
-          <Col span={12} key={index}>
+        {summaryData.map((item) => (
+          <Col span={12} key={item.title}>
             <Card
               style={{
                 border: "none",

@@ -1,181 +1,94 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Tag } from "antd";
+import { message } from "antd";
 import SystemLayout from "@/components/system";
 import DataTable from "@/components/system/DataTable";
+import { rolesAPI } from '@/api-fetch';
+import { fields as formFields } from "@/components/fields/roles";
+import { columns } from "@/components/columns/roles";
 
 export default function RolesPage() {
   const [dataSource, setDataSource] = useState([]);
   const [tableLoading, setTableLoading] = useState(false);
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+    showSizeChanger: true,
+    showQuickJumper: true,
+    showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条，共 ${total} 条`,
+    pageSizeOptions: ['10', '20', '50', '100'],
+    position: ['bottomCenter'],
+  });
 
-  // Load initial data
   useEffect(() => {
-    loadRolesData();
+    loadRolesData(1, 10);
   }, []);
 
-  const loadRolesData = async () => {
+  const loadRolesData = async (page = 1, size = 10) => {
     setTableLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      const mockData = [
-        {
-          id: 1,
-          name: "超级管理员",
-          code: "SUPER_ADMIN",
-          description: "拥有系统所有权限",
-          status: "active",
-          permissions: ["all"],
-          createdAt: "2024-01-15 10:30:00",
-        },
-        {
-          id: 2,
-          name: "系统管理员",
-          code: "SYSTEM_ADMIN",
-          description: "系统管理权限",
-          status: "active",
-          permissions: ["system:read", "system:write"],
-          createdAt: "2024-01-15 10:30:00",
-        },
-        {
-          id: 3,
-          name: "普通用户",
-          code: "USER",
-          description: "基础用户权限",
-          status: "active",
-          permissions: ["user:read"],
-          createdAt: "2024-01-15 10:30:00",
-        },
-        {
-          id: 4,
-          name: "访客",
-          code: "GUEST",
-          description: "只读权限",
-          status: "inactive",
-          permissions: ["read"],
-          createdAt: "2024-01-15 10:30:00",
-        },
-      ];
-      setDataSource(mockData);
+    try {
+      const result = await rolesAPI.getRolesList({ page, size });
+      setDataSource(result.list);
+      setPagination(prev => ({
+        ...prev,
+        current: page,
+        pageSize: size,
+        total: result.total,
+      }));
+    } catch (error) {
+      console.error('Error loading roles:', error);
+      message.error('加载角色列表失败');
+    } finally {
       setTableLoading(false);
-    }, 1000);
+    }
   };
 
-  const columns = [
-    {
-      title: "角色名称",
-      dataIndex: "name",
-      key: "name",
-      width: 150,
-    },
-    {
-      title: "角色代码",
-      dataIndex: "code",
-      key: "code",
-      width: 150,
-    },
-    {
-      title: "描述",
-      dataIndex: "description",
-      key: "description",
-      width: 200,
-    },
-    {
-      title: "状态",
-      dataIndex: "status",
-      key: "status",
-      width: 100,
-      render: (status) => (
-        <Tag color={status === "active" ? "green" : "red"}>
-          {status === "active" ? "启用" : "禁用"}
-        </Tag>
-      ),
-    },
-    {
-      title: "权限",
-      dataIndex: "permissions",
-      key: "permissions",
-      width: 200,
-      render: (permissions) => (
-        <div>
-          {permissions.map((permission, index) => (
-            <Tag key={index} color="blue" style={{ marginBottom: 4 }}>
-              {permission}
-            </Tag>
-          ))}
-        </div>
-      ),
-    },
-    {
-      title: "创建时间",
-      dataIndex: "createdAt",
-      key: "createdAt",
-      width: 180,
-    },
-  ];
-
-  const formFields = [
-    {
-      name: "name",
-      label: "角色名称",
-      type: "input",
-    },
-    {
-      name: "code",
-      label: "角色代码",
-      type: "input",
-    },
-    {
-      name: "description",
-      label: "描述",
-      type: "textarea",
-    },
-    {
-      name: "status",
-      label: "状态",
-      type: "select",
-      options: [
-        { value: "active", label: "启用" },
-        { value: "inactive", label: "禁用" },
-      ],
-    },
-    {
-      name: "permissions",
-      label: "权限",
-      type: "select",
-      options: [
-        { value: "all", label: "所有权限" },
-        { value: "system:read", label: "系统读取" },
-        { value: "system:write", label: "系统写入" },
-        { value: "user:read", label: "用户读取" },
-        { value: "user:write", label: "用户写入" },
-        { value: "read", label: "只读" },
-      ],
-    },
-  ];
+  const handleTableChange = (paginationInfo, filters, sorter) => {
+    const { current, pageSize } = paginationInfo;
+    // Update pagination state with new pageSize if it changed
+    if (pageSize !== pagination.pageSize) {
+      setPagination(prev => ({
+        ...prev,
+        pageSize,
+        current: 1, // Reset to first page when page size changes
+      }));
+    }
+    loadRolesData(current, pageSize);
+  };
 
   const handleAdd = async (values) => {
-    const newRecord = {
-      id: Date.now(),
-      ...values,
-      permissions: Array.isArray(values.permissions) ? values.permissions : [values.permissions],
-      createdAt: new Date().toLocaleString(),
-    };
-    setDataSource([...dataSource, newRecord]);
+    try {
+      await rolesAPI.createRole(values);
+      message.success('角色添加成功');
+      loadRolesData(pagination.current, pagination.pageSize);
+    } catch (error) {
+      console.error('Error adding role:', error);
+      message.error('添加角色失败');
+    }
   };
 
   const handleEdit = async (values) => {
-    setDataSource(dataSource.map(item => 
-      item.id === values.id ? { 
-        ...item, 
-        ...values,
-        permissions: Array.isArray(values.permissions) ? values.permissions : [values.permissions],
-      } : item
-    ));
+    try {
+      await rolesAPI.updateRole(values);
+      message.success('角色更新成功');
+      loadRolesData(pagination.current, pagination.pageSize);
+    } catch (error) {
+      console.error('Error updating role:', error);
+      message.error('更新角色失败');
+    }
   };
 
   const handleDelete = async (record) => {
-    setDataSource(dataSource.filter(item => item.id !== record.id));
+    try {
+      await rolesAPI.deleteRole(record.id);
+      message.success('角色删除成功');
+      loadRolesData(pagination.current, pagination.pageSize);
+    } catch (error) {
+      console.error('Error deleting role:', error);
+      message.error('删除角色失败');
+    }
   };
 
   return (
@@ -189,6 +102,8 @@ export default function RolesPage() {
         onEdit={handleEdit}
         onDelete={handleDelete}
         loading={tableLoading}
+        pagination={pagination}
+        onChange={handleTableChange}
       />
     </SystemLayout>
   );

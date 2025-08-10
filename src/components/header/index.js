@@ -1,14 +1,18 @@
-import { Layout, Typography, Dropdown, Space, Avatar, Card } from "antd";
+import { Layout, Typography, Dropdown, Space, Avatar, Card, Button } from "antd";
 import Image from "next/image";
-import { UserOutlined, LogoutOutlined } from "@ant-design/icons";
+import { UserOutlined, LogoutOutlined, MenuOutlined } from "@ant-design/icons";
 import ThemeToggle from "../ThemeToggle";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSidebar } from "@/contexts/SidebarContext";
+
 const { Title } = Typography;
 
 export default function Header() {
   const router = useRouter();
   const { user, logout } = useAuth();
+  const { collapsed, setCollapsed, isMobile } = useSidebar();
+  
   const handleLogout = async () => {
     try {
       await logout();
@@ -16,6 +20,10 @@ export default function Header() {
     } catch (error) {
       console.error("Logout error:", error);
     }
+  };
+
+  const toggleSidebar = () => {
+    setCollapsed(!collapsed);
   };
 
   const userMenuItems = [
@@ -50,6 +58,22 @@ export default function Header() {
       }}
     >
       <div style={{ display: "flex", alignItems: "center" }}>
+        {/* Mobile Menu Toggle */}
+        {isMobile && (
+          <Button
+            type="text"
+            icon={<MenuOutlined />}
+            onClick={toggleSidebar}
+            style={{
+              marginRight: "16px",
+              fontSize: "18px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          />
+        )}
+        
         <Image src="/logo.svg" alt="logo" width={32} height={32} />
         <Title level={4} style={{ margin: 0, marginLeft: 16 }}>
           Ant Design

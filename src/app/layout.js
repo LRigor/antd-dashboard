@@ -1,6 +1,8 @@
 import { AuthProvider } from '../contexts/AuthContext';
 import { ThemeProvider } from '../contexts/ThemeContext';
-import { App as AntApp } from 'antd';
+import { SidebarProvider } from '../contexts/SidebarContext';
+import { App as AntApp, ConfigProvider } from 'antd';
+import { antdConfig } from '../lib/antd.config';
 import "./globals.css";
 
 export const metadata = {
@@ -11,12 +13,16 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>
+      <body suppressHydrationWarning={true}>
         <ThemeProvider>
           <AuthProvider>
-            <AntApp>
-              {children}
-            </AntApp>
+            <SidebarProvider>
+              <ConfigProvider {...antdConfig}>
+                <AntApp>
+                  {children}
+                </AntApp>
+              </ConfigProvider>
+            </SidebarProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

@@ -125,142 +125,35 @@ export const tokenUtils = {
   }
 };
 
-// API functions for authentication
+// Legacy API functions - now imported from api-fetch
+// These are kept for backward compatibility but will be removed in future versions
 export const authAPI = {
-  // Login function
-  login: async (credentials) => {
-    try {
-      // Production mode: use actual API
-      const response = await fetch('/api/admin/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(credentials),
-      });
-
-      if (!response.ok) {
-        throw new Error('Login failed');
-      }
-
-      const data = await response.json();
-      
-      if (data.code !== 0) {
-        throw new Error(data.message);
-      }
-
-      if (data.data.token) {
-        tokenUtils.setTokens(data.data.token);
-      }
-      
-      return data.data;
-    } catch (error) {
-      console.error('Login error:', error);
-      throw error;
-    }
-  },
-
-  // Refresh token function
-  refreshToken: async () => {
-    try {
-      const refreshToken = tokenUtils.getRefreshToken();
-      if (!refreshToken) {
-        throw new Error('No refresh token available');
-      }
-
-      // Check if we're in development mode
-      const isDevelopment = true; // Force development mode for now
-      
-      if (isDevelopment) {
-        // In development mode, create new mock tokens
-        try {
-          const decoded = jwtDecode(refreshToken);
-          
-          // Create new access token with the same user data
-          const newAccessToken = createMockJWT({
-            sub: decoded.sub,
-            username: decoded.username || 'admin',
-            email: decoded.email || 'admin@example.com',
-            roles: decoded.roles || ['admin'],
-            permissions: decoded.permissions || ['read', 'write', 'delete']
-          }, 3600); // 1 hour
-          
-          const newRefreshToken = createMockJWT({
-            sub: decoded.sub,
-            type: 'refresh'
-          }, 604800); // 7 days
-          
-          tokenUtils.setTokens(newAccessToken, newRefreshToken);
-          return newAccessToken;
-        } catch (error) {
-          console.error('Development token refresh error:', error);
-          throw new Error('Invalid refresh token');
-        }
-      }
-
-      // Production mode: call actual API
-      const response = await fetch('/api/auth/refresh', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ refreshToken }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Token refresh failed');
-      }
-
-      const data = await response.json();
-      
-      if (data.accessToken) {
-        tokenUtils.setTokens(data.accessToken, data.refreshToken);
-        return data.accessToken;
-      }
-      
-      throw new Error('No new token received');
-    } catch (error) {
-      console.error('Token refresh error:', error);
-      tokenUtils.removeTokens();
-      throw error;
-    }
-  },
-
-  // Make authenticated API calls
+  // This is now handled by the new api-fetch structure
+  // The actual implementation is in src/api-fetch/auth.js
+  
+  // Make authenticated API calls (legacy function)
   apiCall: async (url, options = {}) => {
+    // Import the new API client dynamically to avoid circular dependencies
+    const { apiClient } = await import('../api-fetch/client');
+    
     let token = tokenUtils.getToken();
     
     // Check if token is valid
     if (!tokenUtils.isTokenValid(token)) {
-      // Try to refresh token
+      // Try to refresh token using the new auth API
       try {
+        const { authAPI } = await import('../api-fetch/auth');
         token = await authAPI.refreshToken();
       } catch (error) {
         // Redirect to login if refresh fails
-        window.location.href = '/login';
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login';
+        }
         throw error;
       }
     }
 
-    // Add authorization header
-    const headers = {
-      'Content-Type': 'application/json',
-      ...options.headers,
-      'Authorization': `Bearer ${token}`,
-    };
-
-    const response = await fetch(url, {
-      ...options,
-      headers,
-    });
-
-    // Handle 401 responses
-    if (response.status === 401) {
-      tokenUtils.removeTokens();
-      window.location.href = '/login';
-      throw new Error('Unauthorized');
-    }
-
-    return response;
+    // Use the new API client
+    return apiClient.get(url, options);
   }
 }; 

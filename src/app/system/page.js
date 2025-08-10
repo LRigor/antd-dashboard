@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import Sidebar from "@/components/sidebar";
 import Header from "@/components/header";
 import SystemLayout from "@/components/system";
+import { logColumns } from "@/components/columns/system-overview";
 
 export default function SystemPage() {
   const router = useRouter();
@@ -52,22 +53,6 @@ export default function SystemPage() {
     { key: "4", time: "2024-01-15 10:22:18", user: "admin", action: "创建用户", status: "成功" },
   ];
 
-  const logColumns = [
-    { title: "时间", dataIndex: "time", key: "time" },
-    { title: "用户", dataIndex: "user", key: "user" },
-    { title: "操作", dataIndex: "action", key: "action" },
-    {
-      title: "状态",
-      dataIndex: "status",
-      key: "status",
-      render: (status) => (
-        <Tag color={status === "成功" ? "green" : "red"}>
-          {status}
-        </Tag>
-      ),
-    },
-  ];
-
   return (
     <Layout style={{ minHeight: "100vh" }}>
       <Header />
@@ -76,8 +61,8 @@ export default function SystemPage() {
         <SystemLayout title="系统概览" subtitle="System Overview">
           {/* System Statistics */}
           <Row gutter={[16, 16]}>
-            {systemStats.map((stat, index) => (
-              <Col xs={24} sm={12} lg={6} key={index}>
+            {systemStats.map((stat) => (
+              <Col xs={24} sm={12} lg={6} key={stat.title}>
                 <Card
                   style={{
                     borderRadius: "8px",

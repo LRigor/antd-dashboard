@@ -1,147 +1,92 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Tag, Avatar } from "antd";
-import { UserOutlined } from "@ant-design/icons";
+import { useState, useEffect } from "react";
+import { message } from "antd";
 import SystemLayout from "@/components/system";
 import DataTable from "@/components/system/DataTable";
+import { columns } from "@/components/columns/login-logs";
+import { loginLogsAPI } from '../../../api-fetch';
 
 export default function LoginLogsPage() {
   const [dataSource, setDataSource] = useState([]);
   const [tableLoading, setTableLoading] = useState(false);
-
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+    showSizeChanger: true,
+    showQuickJumper: true,
+    showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条，共 ${total} 条`,
+    pageSizeOptions: ['10', '20', '50', '100'],
+    position: ['bottomCenter'],
+  });
   // Load initial data
   useEffect(() => {
-    loadLoginLogsData();
+    loadLoginLogsData(1, pagination.pageSize);
   }, []);
 
-  const loadLoginLogsData = async () => {
+  const loadLoginLogsData = async (page = 1, size = 10) => {
     setTableLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      const mockData = [
-        {
-          id: 1,
-          username: "admin",
-          name: "系统管理员",
-          ip: "192.168.1.100",
-          location: "北京市",
-          device: "Chrome 120.0.0.0",
-          status: "success",
-          loginTime: "2024-01-15 10:30:00",
-          logoutTime: "2024-01-15 12:45:00",
-        },
-        {
-          id: 2,
-          username: "manager",
-          name: "部门经理",
-          ip: "192.168.1.101",
-          location: "上海市",
-          device: "Firefox 121.0",
-          status: "success",
-          loginTime: "2024-01-15 09:15:00",
-          logoutTime: "2024-01-15 11:30:00",
-        },
-        {
-          id: 3,
-          username: "operator",
-          name: "操作员",
-          ip: "192.168.1.102",
-          location: "广州市",
-          device: "Safari 17.0",
-          status: "failed",
-          loginTime: "2024-01-15 08:45:00",
-          logoutTime: "-",
-        },
-        {
-          id: 4,
-          username: "guest",
-          name: "访客用户",
-          ip: "192.168.1.103",
-          location: "深圳市",
-          device: "Edge 120.0.0.0",
-          status: "success",
-          loginTime: "2024-01-14 16:20:00",
-          logoutTime: "2024-01-14 18:15:00",
-        },
-        {
-          id: 5,
-          username: "admin",
-          name: "系统管理员",
-          ip: "192.168.1.100",
-          location: "北京市",
-          device: "Chrome 120.0.0.0",
-          status: "success",
-          loginTime: "2024-01-14 14:30:00",
-          logoutTime: "2024-01-14 17:45:00",
-        },
-      ];
-      setDataSource(mockData);
+    try {
+      const result = await loginLogsAPI.getLoginLogsList({ page, size });
+      
+      // Validate and ensure unique IDs
+      if (result.list && Array.isArray(result.list)) {
+        // Check for duplicate IDs
+        const ids = result.list.map(item => item.id);
+        const uniqueIds = new Set(ids);
+        if (ids.length !== uniqueIds.size) {
+          console.warn('LoginLogs: Duplicate IDs detected in API response:', ids);
+          // Add unique identifiers to prevent React key conflicts
+          const processedList = result.list.map((item, index) => ({
+            ...item,
+            uniqueKey: `${item.id || 'unknown'}-${index}`
+          }));
+          setDataSource(processedList);
+        } else {
+          setDataSource(result.list);
+        }
+      } else {
+        setDataSource([]);
+      }
+      
+      setPagination(prev => ({
+        ...prev,
+        current: page,
+        pageSize: size,
+        total: result.total,
+      }));
+    } catch (error) {
+      console.error('Error loading login logs:', error);
+      message.error('加载登录日志列表失败');
+    } finally {
       setTableLoading(false);
-    }, 1000);
+    }
   };
 
-  const columns = [
-    {
-      title: "用户",
-      dataIndex: "username",
-      key: "username",
-      width: 120,
-      render: (username, record) => (
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <Avatar icon={<UserOutlined />} style={{ marginRight: 8 }} />
-          <div>
-            <div>{record.name}</div>
-            <div style={{ fontSize: '12px', color: '#999' }}>@{username}</div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      title: "IP地址",
-      dataIndex: "ip",
-      key: "ip",
-      width: 130,
-    },
-    {
-      title: "登录地点",
-      dataIndex: "location",
-      key: "location",
-      width: 120,
-    },
-    {
-      title: "设备信息",
-      dataIndex: "device",
-      key: "device",
-      width: 180,
-    },
-    {
-      title: "状态",
-      dataIndex: "status",
-      key: "status",
-      width: 100,
-      render: (status) => (
-        <Tag color={status === "success" ? "green" : "red"}>
-          {status === "success" ? "成功" : "失败"}
-        </Tag>
-      ),
-    },
-    {
-      title: "登录时间",
-      dataIndex: "loginTime",
-      key: "loginTime",
-      width: 180,
-    },
-    {
-      title: "登出时间",
-      dataIndex: "logoutTime",
-      key: "logoutTime",
-      width: 180,
-    },
-  ];
+  const handleTableChange = (paginationInfo, filters, sorter) => {
+    const { current, pageSize } = paginationInfo;
+    // Update pagination state with new pageSize if it changed
+    if (pageSize !== pagination.pageSize) {
+      setPagination(prev => ({
+        ...prev,
+        pageSize,
+        current: 1, // Reset to first page when page size changes
+      }));
+    }
+    loadLoginLogsData(current, pageSize);
+  };
 
   const handleDelete = async (record) => {
-    setDataSource(dataSource.filter(item => item.id !== record.id));
+    try {
+      await loginLogsAPI.deleteLoginLog(record.id);
+      message.success('登录日志删除成功');
+      // Reload current page data
+      loadLoginLogsData(pagination.current, pagination.pageSize);
+    } catch (error) {
+      console.error('Error deleting login log:', error);
+      message.error('删除登录日志失败');
+    }
   };
 
   return (
@@ -152,6 +97,9 @@ export default function LoginLogsPage() {
         title="登录日志列表"
         onDelete={handleDelete}
         loading={tableLoading}
+        pagination={pagination}
+        onChange={handleTableChange}
+        rowKey="uniqueKey"
       />
     </SystemLayout>
   );

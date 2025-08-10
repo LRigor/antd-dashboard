@@ -1,7 +1,8 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect } from 'react';
-import { tokenUtils, authAPI } from '../utils/auth';
+import { tokenUtils } from '../utils/auth';
+import { authAPI } from '../api-fetch';
 import { useRouter } from 'next/navigation';
 
 // Create the auth context
@@ -78,10 +79,21 @@ export const AuthProvider = ({ children }) => {
       if (response.user) {
         setUser(response.user);
         setIsAuthenticated(true);
+      } else if (response.token) {
+        try {
+          const payload = tokenUtils.getTokenPayload(response.token);
+          if (payload) {
+            setUser(payload);
+            setIsAuthenticated(true);
+          }
+        } catch (error) {
+          console.error("Failed to decode token payload:", error);
+        }
       }
       
       return response;
     } catch (error) {
+      console.error("AuthContext login error:", error);
       throw error;
     } finally {
       setLoading(false);

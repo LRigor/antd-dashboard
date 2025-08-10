@@ -6,13 +6,9 @@ import {
   Form,
   Input,
   Button,
-  Checkbox,
   Tabs,
   Space,
   Typography,
-  Divider,
-  Row,
-  Col,
   App,
 } from "antd";
 import {
@@ -20,9 +16,6 @@ import {
   LockOutlined,
   EyeInvisibleOutlined,
   EyeTwoTone,
-  AlipayCircleOutlined,
-  TaobaoCircleOutlined,
-  WeiboCircleOutlined,
   AudioOutlined,
   SettingOutlined,
 } from "@ant-design/icons";
@@ -53,9 +46,11 @@ export default function LoginPage() {
       setLoading(true);
       await login(values);
       message.success("Login successful!");
-
-      const redirectTo = searchParams.get("redirect") || "/dashboard";
-      router.push(redirectTo);
+      setTimeout(() => {
+        const redirectTo = searchParams.get("redirect") || "/dashboard";
+        router.push(redirectTo);
+      }, 100);
+      
     } catch (error) {
       console.error("Login error:", error);
       message.error("Login failed. Please check your credentials.");

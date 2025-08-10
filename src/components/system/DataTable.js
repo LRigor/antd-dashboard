@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Table, Button, Space, Modal, Form, Input, Select, message, Popconfirm } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 
@@ -14,11 +14,25 @@ export default function DataTable({
   onAdd, 
   onEdit, 
   onDelete,
-  loading = false 
+  loading = false,
+  pagination = {},
+  onChange
 }) {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
   const [form] = Form.useForm();
+
+  // Debug: Check for duplicate keys
+  useEffect(() => {
+    if (dataSource && dataSource.length > 0) {
+      const keys = dataSource.map((record, index) => record.id || record.key || `row-${index}`);
+      const uniqueKeys = new Set(keys);
+      if (keys.length !== uniqueKeys.size) {
+        console.warn('DataTable: Duplicate keys detected in dataSource:', keys);
+        console.warn('DataSource:', dataSource);
+      }
+    }
+  }, [dataSource]);
 
   const handleAdd = () => {
     setEditingRecord(null);
@@ -61,6 +75,12 @@ export default function DataTable({
   const handleModalCancel = () => {
     setIsModalVisible(false);
     form.resetFields();
+  };
+
+  const handleTableChange = (paginationInfo, filters, sorter) => {
+    if (onChange) {
+      onChange(paginationInfo, filters, sorter);
+    }
   };
 
   const actionColumn = {
@@ -163,13 +183,24 @@ export default function DataTable({
       <Table
         columns={tableColumns}
         dataSource={dataSource}
-        rowKey="id"
-        loading={loading}
-        pagination={{
-          showSizeChanger: true,
-          showQuickJumper: true,
-          showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条，共 ${total} 条`,
+        rowKey={(record) => {
+          // Ensure we always have a unique key
+          if (record.uniqueKey !== undefined && record.uniqueKey !== null) {
+            return record.uniqueKey;
+          }
+          if (record.id !== undefined && record.id !== null) {
+            return `id-${record.id}`;
+          }
+          if (record.key !== undefined && record.key !== null) {
+            return `key-${record.key}`;
+          }
+          // Generate a unique key based on record properties
+          const recordStr = JSON.stringify(record);
+          return `row-${recordStr.length}-${Date.now()}`;
         }}
+        loading={loading}
+        pagination={pagination}
+        onChange={handleTableChange}
       />
 
       {formFields && formFields.length > 0 && (
@@ -184,7 +215,11 @@ export default function DataTable({
             form={form}
             layout="vertical"
           >
-            {formFields.map(renderFormField)}
+            {formFields.map((field, index) => (
+              <div key={`${field.name}-${index}`}>
+                {renderFormField(field)}
+              </div>
+            ))}
           </Form>
         </Modal>
       )}

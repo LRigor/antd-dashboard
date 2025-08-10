@@ -1,34 +1,58 @@
 "use client";
 import { Layout, Menu, Card, Button } from "antd";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import {
   DashboardOutlined,
   LeftOutlined,
   RightOutlined,
 } from "@ant-design/icons";
 import { useRouter, usePathname } from "next/navigation";
+import { useSidebar } from "@/contexts/SidebarContext";
 
 export default function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
+  const { collapsed, setCollapsed, isMobile, expandedKeys, setExpandedKeys } = useSidebar();
 
   const handleCollapse = (collapsed) => {
     setCollapsed(collapsed);
   };
 
-  useEffect(() => {
-    if (pathname.match(/^\/system\/.*/)) {
+  const handleOverlayClick = () => {
+    if (isMobile && !collapsed) {
       setCollapsed(true);
     }
-  }, [pathname]);
+  };
+
+  const handleMenuExpand = (keys) => {
+    setExpandedKeys(keys);
+  };
+
+  useEffect(() => {
+    if (pathname.startsWith("/system") && !collapsed) {
+      const subPath = pathname.split("/")[2];
+      if (subPath && !expandedKeys.includes("system")) {
+        setExpandedKeys([...expandedKeys, "system"]);
+      }
+    }
+  }, [pathname, collapsed, expandedKeys, setExpandedKeys]);
+
+  const getSelectedKey = () => {
+    if (pathname.startsWith("/system")) {
+      const subPath = pathname.split("/")[2];
+      if (subPath) {
+        return [subPath];
+      }
+      return ["system"];
+    }
+    return [];
+  };
 
   const menuItems = [
     {
-      key: "dashboard",
+      key: "system",
       icon: <DashboardOutlined />,
       label: "系统",
-      onClick: () => router.push("/dashboard"),
       children: [
         { 
           key: "menu", 
@@ -74,17 +98,6 @@ export default function Sidebar() {
     },
   ];
 
-  // Determine selected key based on current pathname
-  const getSelectedKey = () => {
-    if (pathname === "/dashboard") return ["dashboard"];
-    if (pathname.startsWith("/system/")) {
-      const subPath = pathname.split("/")[2];
-      return [subPath];
-    }
-    if (pathname === "/system") return ["dashboard"];
-    return ["dashboard"];
-  };
-
   return (
     <>
       <style jsx>{`
@@ -103,14 +116,45 @@ export default function Sidebar() {
           border-color: transparent !important;
           color: inherit !important;
         }
+        .mobile-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: rgba(0, 0, 0, 0.5);
+          z-index: 999;
+          display: none;
+        }
+        .mobile-overlay.visible {
+          display: block;
+        }
+        .sidebar-mobile {
+          position: fixed;
+          top: 0;
+          left: 0;
+          height: 100vh;
+          z-index: 1000;
+        }
+        .sidebar-desktop {
+          position: relative;
+        }
       `}</style>
+      
+      {/* Mobile Overlay */}
+      <div 
+        className={`mobile-overlay ${isMobile && !collapsed ? 'visible' : ''}`}
+        onClick={handleOverlayClick}
+      />
+      
       <Layout.Sider
         trigger={null}
         collapsible
         collapsed={collapsed}
         theme="light"
+        className={isMobile ? 'sidebar-mobile' : 'sidebar-desktop'}
         style={{
-          position: "relative",
+          position: isMobile ? "fixed" : "relative",
           background: "transparent",
         }}
       >
@@ -166,6 +210,8 @@ export default function Sidebar() {
           <Menu
             mode="inline"
             selectedKeys={getSelectedKey()}
+            openKeys={expandedKeys}
+            onOpenChange={handleMenuExpand}
             items={menuItems}
             style={{
               borderRight: 0,

@@ -53,7 +53,7 @@ export const dictionariesAPI = {
   // Delete dictionary
   deleteDictionary: async (id) => {
     try {
-      const response = await apiClient.put('/api/dict/del', { id });
+      const response = await apiClient.put('/api/dict/del', { ids: [id] });
       return response.data;
     } catch (error) {
       console.error('Delete dictionary error:', error);

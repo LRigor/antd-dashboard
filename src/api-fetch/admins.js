@@ -7,12 +7,11 @@ export const adminsAPI = {
     const { page = 1, size = 10, ...otherParams } = params;
     const queryString = buildQueryString({ page, size, ...otherParams });
     const url = `/api/admin/list${queryString ? `?${queryString}` : ''}`;
-    
     try {
-      const response = await apiClient.get(url);
-      return response.data;
+      const res = await apiClient.get(url);
+      return res;
     } catch (error) {
-      console.error('Get admins list error:', error);
+      console.error('[adminsAPI] getAdminsList error:', error);
       throw error;
     }
   },
@@ -20,10 +19,10 @@ export const adminsAPI = {
   // Get admin by ID
   getAdminById: async (id) => {
     try {
-      const response = await apiClient.get(`/api/admin?id=${id}`);
-      return response.data;
+      const res = await apiClient.get(`/api/admin?id=${id}`);
+      return res;
     } catch (error) {
-      console.error('Get admin by ID error:', error);
+      console.error('[adminsAPI] getAdminById error:', error);
       throw error;
     }
   },
@@ -31,10 +30,10 @@ export const adminsAPI = {
   // Create new admin
   createAdmin: async (adminData) => {
     try {
-      const response = await apiClient.post('/api/admin', adminData);
-      return response.data;
+      const res = await apiClient.post('/api/admin', adminData);
+      return res;
     } catch (error) {
-      console.error('Create admin error:', error);
+      console.error('[adminsAPI] createAdmin error:', error);
       throw error;
     }
   },
@@ -42,10 +41,10 @@ export const adminsAPI = {
   // Update existing admin
   updateAdmin: async (adminData) => {
     try {
-      const response = await apiClient.put('/api/admin', adminData);
-      return response.data;
+      const res = await apiClient.put('/api/admin', adminData);
+      return res;
     } catch (error) {
-      console.error('Update admin error:', error);
+      console.error('[adminsAPI] updateAdmin error:', error);
       throw error;
     }
   },
@@ -53,10 +52,10 @@ export const adminsAPI = {
   // Delete admin
   deleteAdmin: async (id) => {
     try {
-      const response = await apiClient.put('/api/admin/del', { id });
-      return response.data;
+      const res = await apiClient.put('/api/admin/del', { id });
+      return res;
     } catch (error) {
-      console.error('Delete admin error:', error);
+      console.error('[adminsAPI] deleteAdmin error:', error);
       throw error;
     }
   },
@@ -64,10 +63,10 @@ export const adminsAPI = {
   // Change admin password
   changePassword: async (adminId, passwordData) => {
     try {
-      const response = await apiClient.put(`/api/admin/${adminId}/password`, passwordData);
-      return response.data;
+      const res = await apiClient.put(`/api/admin/${adminId}/password`, passwordData);
+      return res;
     } catch (error) {
-      console.error('Change password error:', error);
+      console.error('[adminsAPI] changePassword error:', error);
       throw error;
     }
   },
@@ -75,24 +74,38 @@ export const adminsAPI = {
   // Get admin profile
   getAdminProfile: async (adminId) => {
     try {
-      const response = await apiClient.get(`/api/admin/profile/${adminId}`);
-      return response.data;
+      const res = await apiClient.get(`/api/admin/profile/${adminId}`);
+      return res;
     } catch (error) {
-      console.error('Get admin profile error:', error);
+      console.error('[adminsAPI] getAdminProfile error:', error);
       throw error;
+    }
+  },
+
+  // ✅ Get admin info（依賴 apiClient 統一注入 Authorization/namespace）
+  getAdminInfo: async () => {
+    const url = '/api/admin/info';
+    console.log('[adminsAPI] GET', url);
+    try {
+      const res = await apiClient.get(url);
+      // res 形如 { code, message, data }
+      return res;
+    } catch (err) {
+      console.error('[adminsAPI] getAdminInfo error:', err);
+      throw err;
     }
   },
 
   // Update admin profile
   updateAdminProfile: async (adminId, profileData) => {
     try {
-      const response = await apiClient.put(`/api/admin/profile/${adminId}`, profileData);
-      return response.data;
+      const res = await apiClient.put(`/api/admin/profile/${adminId}`, profileData);
+      return res;
     } catch (error) {
-      console.error('Update admin profile error:', error);
+      console.error('[adminsAPI] updateAdminProfile error:', error);
       throw error;
     }
   },
 };
 
-export default adminsAPI; 
+export default adminsAPI;

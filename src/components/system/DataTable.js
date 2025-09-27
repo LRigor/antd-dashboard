@@ -114,7 +114,37 @@ export default function DataTable({
 
   const tableColumns = formFields && formFields.length > 0 ? [...columns, actionColumn] : columns;
 
-  const renderFormField = (field) => {
+  const renderFormField = (field, index) => {
+    // ✅ 支援 schema 自定義渲染（含 type:'custom'）
+    if (typeof field.render === 'function') {
+      const ctx = { form, record: editingRecord, mode: editingRecord ? 'edit' : 'add' };
+      const node = field.render(ctx);
+  
+      // 沒有 name：當純節點（例如「上传」按鈕）
+      if (!field.name) {
+        return (
+          <Form.Item
+            key={field.key || field.label || `custom-${index}`}
+            label={field.label}
+            colon={false}
+          >
+            {node}
+          </Form.Item>
+        );
+      }
+      // 有 name：受控欄位
+      return (
+        <Form.Item
+          key={field.name}
+          name={field.name}
+          label={field.label}
+          rules={field.rules || [{ required: true, message: `请输入${field.label}` }]}
+        >
+          {node}
+        </Form.Item>
+      );
+    }
+    
     switch (field.type) {
       case 'input':
         return (
@@ -216,10 +246,10 @@ export default function DataTable({
             layout="vertical"
           >
             {formFields.map((field, index) => (
-              <div key={`${field.name}-${index}`}>
-                {renderFormField(field)}
-              </div>
-            ))}
+  <div key={`${field.name || field.label || 'custom'}-${index}`}>
+    {renderFormField(field, index)}
+  </div>
+))}
           </Form>
         </Modal>
       )}

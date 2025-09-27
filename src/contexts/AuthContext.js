@@ -11,9 +11,7 @@ const AuthContext = createContext();
 // Custom hook to use the auth context
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 };
 
@@ -27,31 +25,34 @@ export const AuthProvider = ({ children }) => {
   // Initialize auth state on mount
   useEffect(() => {
     initializeAuth();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Initialize authentication state
   const initializeAuth = async () => {
     try {
       const token = tokenUtils.getToken();
-      
+
       if (token) {
-        const isValid = tokenUtils.isTokenValid(token);
-        
+        const isValid = tokenUtils.isTokenValid ? tokenUtils.isTokenValid(token) : true;
+
         if (isValid) {
-          const payload = tokenUtils.getTokenPayload(token);
-          setUser(payload);
+          try {
+            const payload = tokenUtils.getTokenPayload?.(token);
+            if (payload) setUser(payload);
+          } catch (e) {
+            // payload 解析失败不致命，后续可通过 /api/admin/info 补齐
+          }
           setIsAuthenticated(true);
         } else {
           // Token exists but is invalid, try to refresh
           try {
-            await authAPI.refreshToken();
+            await authAPI.refreshToken?.();
             const newToken = tokenUtils.getToken();
-            const payload = tokenUtils.getTokenPayload(newToken);
-            setUser(payload);
+            const payload = tokenUtils.getTokenPayload?.(newToken);
+            if (payload) setUser(payload);
             setIsAuthenticated(true);
           } catch (error) {
-            console.error('Token refresh failed:', error);
-            // Refresh failed, clear tokens
             tokenUtils.removeTokens();
             setUser(null);
             setIsAuthenticated(false);
@@ -61,7 +62,7 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
         setIsAuthenticated(false);
       }
-    } catch (error) {
+    } catch {
       tokenUtils.removeTokens();
       setUser(null);
       setIsAuthenticated(false);
@@ -74,43 +75,39 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     try {
       setLoading(true);
-      const response = await authAPI.login(credentials);
-      
-      if (response.user) {
-        setUser(response.user);
-        setIsAuthenticated(true);
-      } else if (response.token) {
-        try {
-          const payload = tokenUtils.getTokenPayload(response.token);
-          if (payload) {
-            setUser(payload);
-            setIsAuthenticated(true);
-          }
-        } catch (error) {
-          console.error("Failed to decode token payload:", error);
-        }
+      // authAPI.login 会把 data.token 写入 tokenUtils（见你已修改的实现）
+      const res = await authAPI.login(credentials); // 返回 { code, message, data }
+
+      // 双保险：从返回或 tokenUtils 取 token
+      const token = res?.data?.token || tokenUtils.getToken();
+      if (!token) throw new Error('No token after login');
+
+      try {
+        const payload = tokenUtils.getTokenPayload?.(token);
+        if (payload) setUser(payload);
+      } catch (e) {
+        // payload 解析失败不影响登录态
       }
-      
-      return response;
+      setIsAuthenticated(true);
+
+      return res;
     } catch (error) {
-      console.error("AuthContext login error:", error);
+      // 抛给调用方处理消息
       throw error;
     } finally {
       setLoading(false);
     }
   };
 
-  // Register function
+  // Register function（保持你的原样）
   const register = async (userData) => {
     try {
       setLoading(true);
-      const response = await authAPI.register(userData);
-      
-      if (response.user) {
+      const response = await authAPI.register?.(userData);
+      if (response?.user) {
         setUser(response.user);
         setIsAuthenticated(true);
       }
-      
       return response;
     } catch (error) {
       throw error;
@@ -125,38 +122,33 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setIsAuthenticated(false);
     setLoading(false);
-    router.push('/');
+    router.push('/adminlogin');
   };
 
-  // Update user data
-  const updateUser = (userData) => {
-    setUser(userData);
-  };
+  // Update user data（保持原样）
+  const updateUser = (userData) => setUser(userData);
 
-  // Check if user has specific role
-  const hasRole = (role) => {
-    return user?.roles?.includes(role) || false;
-  };
-
-  // Check if user has specific permission
-  const hasPermission = (permission) => {
-    return user?.permissions?.includes(permission) || false;
-  };
+  // Check role/permission（保持原样）
+  const hasRole = (role) => user?.roles?.includes(role) || false;
+  const hasPermission = (permission) => user?.permissions?.includes(permission) || false;
 
   // Refresh user data from server
   const refreshUser = async () => {
     try {
-      const response = await authAPI.apiCall('/api/auth/me');
-      if (response.ok) {
-        const userData = await response.json();
-        setUser(userData);
-      }
+      // 优先用你在 api-fetch/auth.js 暴露的 getCurrentUser；否则直接打 /api/admin/info
+      const res = authAPI.getCurrentUser
+        ? await authAPI.getCurrentUser()
+        : await (await import('../api-fetch/client')).apiClient.get('/api/admin/info');
+
+      // 你的 apiClient 已统一处理 {code,message,data}
+      const info = res?.data;
+      if (info) setUser(info);
     } catch (error) {
       console.error('Failed to refresh user data:', error);
     }
   };
 
-  // Value object to be provided by context
+  // Context value
   const value = {
     user,
     loading,
@@ -170,9 +162,7 @@ export const AuthProvider = ({ children }) => {
     refreshUser,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
-}; 
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+export default AuthContext;

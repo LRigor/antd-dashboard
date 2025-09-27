@@ -1,3 +1,7 @@
+import React from 'react';
+import UploadAny from '@/components/common/uploadAny';
+
+
 export const fields = [
   {
     name: "url",
@@ -7,6 +11,19 @@ export const fields = [
       { required: true, message: "请输入文件URL" },
     ],
   },
+  {
+    label: '上传',
+    type: 'custom',
+    render: (ctx) => (
+      <UploadAny
+        form={ctx?.form}
+        targetName="url"
+        groupField="group"
+        accept="*/*"
+      />
+    ),
+  },
+  
   {
     name: "contentType",
     label: "内容类型",

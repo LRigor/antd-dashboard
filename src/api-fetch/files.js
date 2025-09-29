@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { apiClient, buildQueryString } from './client';
+import Cookies from 'js-cookie';
 
 // File management API endpoints
 export const filesAPI = {
@@ -28,47 +30,37 @@ export const filesAPI = {
     }
   },
 
-  // Upload file
-  uploadFile: async (fileData, onProgress = null) => {
-    try {
-      // For file uploads, we need to handle FormData differently
-      const formData = new FormData();
-      
-      if (fileData.file) {
-        formData.append('file', fileData.file);
-      }
-      
-      // Add other metadata
-      Object.keys(fileData).forEach(key => {
-        if (key !== 'file') {
-          formData.append(key, fileData[key]);
-        }
-      });
+ 
+// Upload file
+uploadFile: async (file, group = 'biz') => {
+  console.log('[filesAPI] uploadFile:start', { name: file?.name, size: file?.size, type: file?.type, group });
 
-      const response = await fetch('/api/file', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`,
-        },
-        body: formData,
-      });
+  const fd = new FormData();
+  fd.append('file', file);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+  let headers; // ← 先在外层声明，catch 才能访问
+  try {
+    const token =
+      (typeof Cookies !== 'undefined' && Cookies.get) ? (Cookies.get('token') || '') :
+      (localStorage.getItem('auth-token') || '');
 
-      const data = await response.json();
-      
-      if (data.code !== undefined && data.code !== 0) {
-        throw new Error(data.message || 'File upload failed');
-      }
+    headers = {
+      Authorization: `Bearer ${token}`,
+      group,
+    };
+    console.log('[filesAPI] POST /api/file/upload headers =', headers);
 
-      return data.data;
-    } catch (error) {
-      console.error('Upload file error:', error);
-      throw error;
-    }
-  },
+    const resp = await apiClient.post('/api/file/upload', fd, { headers });
+    const data = resp?.data ?? resp;
+
+    console.log('[filesAPI] uploadFile:success data =', data);
+    return data; // 期望 { prefix, paths }
+  } catch (err) {
+    console.error('[filesAPI] uploadFile:error', err, ' lastHeaders=', headers);
+    throw err;
+  }
+},
+
 
   // Update file metadata
   updateFile: async (fileData) => {
@@ -84,7 +76,7 @@ export const filesAPI = {
   // Delete file
   deleteFile: async (id) => {
     try {
-      const response = await apiClient.put('/api/file/del', { id });
+      const response = await apiClient.put('/api/file/del', { ids: [id] });
       return response.data;
     } catch (error) {
       console.error('Delete file error:', error);
@@ -122,7 +114,7 @@ export const filesAPI = {
     }
   },
 
-  // Get file preview URL
+  // Get file preview URL 暫時沒有
   getFilePreviewUrl: (id) => {
     return `/api/file/preview/${id}`;
   },

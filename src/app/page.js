@@ -2,15 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  Form,
-  Input,
-  Button,
-  Tabs,
-  Space,
-  Typography,
-  App,
-} from "antd";
+import { Form, Input, Button, Tabs, Space, Typography, App } from "antd";
 import {
   UserOutlined,
   LockOutlined,
@@ -33,24 +25,26 @@ export default function LoginPage() {
   const { login, isAuthenticated, loading: authLoading } = useAuth();
   const { message } = App.useApp();
 
-  // Redirect if already authenticated
+  // 已登录则自动跳转
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
       const redirectTo = searchParams.get("redirect") || "/dashboard";
+      console.log("[LoginPage] already authed, redirect to:", redirectTo);
       router.push(redirectTo);
     }
   }, [isAuthenticated, authLoading, router, searchParams]);
 
   const onFinish = async (values) => {
+    console.log("[LoginPage] submit ->", values);
     try {
       setLoading(true);
-      await login(values);
+      const res = await login(values); // 会把 token 写入
+      console.log("[LoginPage] login ok, res =", res);
       message.success("Login successful!");
-      setTimeout(() => {
-        const redirectTo = searchParams.get("redirect") || "/dashboard";
-        router.push(redirectTo);
-      }, 100);
-      
+
+      const redirectTo = searchParams.get("redirect") || "/dashboard";
+      console.log("[LoginPage] redirect to:", redirectTo);
+      router.replace(redirectTo); // 用 replace 防止返回到登录页
     } catch (error) {
       console.error("Login error:", error);
       message.error("Login failed. Please check your credentials.");
@@ -77,6 +71,7 @@ export default function LoginPage() {
           <Form.Item name="otp_code" initialValue="" hidden>
             <Input />
           </Form.Item>
+
           <Form.Item
             name="uname"
             rules={[{ required: true, message: "Please input your username!" }]}
@@ -112,7 +107,6 @@ export default function LoginPage() {
     },
   ];
 
-  // Show loading while checking authentication
   if (authLoading) {
     return (
       <div
@@ -164,13 +158,9 @@ export default function LoginPage() {
         </div>
 
         {/* Login Form */}
-        <Tabs
-          activeKey={activeTab}
-          onChange={setActiveTab}
-          items={items}
-          centered
-        />
+        <Tabs activeKey={activeTab} onChange={setActiveTab} items={items} centered />
       </div>
+
       {/* Footer */}
       <div
         style={{

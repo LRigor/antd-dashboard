@@ -49,7 +49,7 @@ export const menusAPI = {
   // Delete menu
   deleteMenu: async (id) => {
     try {
-      const response = await apiClient.put('/api/menu/del', { id });
+      const response = await apiClient.put('/api/menu/del', { ids: [id] });
       return response.data;
     } catch (error) {
       console.error('Delete menu error:', error);

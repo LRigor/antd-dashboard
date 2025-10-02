@@ -1,3 +1,5 @@
+/*
+
 'use client';
 
 import { createContext, useContext, useState, useEffect } from 'react';
@@ -122,7 +124,7 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setIsAuthenticated(false);
     setLoading(false);
-    router.push('/adminlogin');
+    router.push('/adminlogin?logged-out=true');
   };
 
   // Update user data（保持原样）
@@ -166,3 +168,4 @@ export const AuthProvider = ({ children }) => {
 };
 
 export default AuthContext;
+*/

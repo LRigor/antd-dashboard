@@ -31,12 +31,14 @@ export default function AdminsPage() {
     setTableLoading(true);
     try {
       const result = await adminsAPI.getAdminsList({ page, size });
-      setDataSource(result.list);
+      const data = result?.data || result; // 兼容两种写法
+  
+      setDataSource(Array.isArray(data?.list) ? data.list : []);
       setPagination(prev => ({
         ...prev,
         current: page,
         pageSize: size,
-        total: result.total,
+        total: Number(data?.total) || 0,
       }));
     } catch (error) {
       console.error('Error loading admins:', error);
@@ -45,6 +47,7 @@ export default function AdminsPage() {
       setTableLoading(false);
     }
   };
+  
 
   const handleTableChange = (paginationInfo, filters, sorter) => {
     const { current, pageSize } = paginationInfo;

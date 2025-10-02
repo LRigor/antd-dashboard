@@ -1,24 +1,28 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Layout } from "antd";
-import { useAuth } from "@/contexts/AuthContext";
+import { Layout, App } from "antd";          // ✅ 引入 App
 import Sidebar from "@/components/sidebar";
 import Header from "@/components/header";
+import { useUser } from "@/components/header/useUser";
 
 export default function BaseLayout({ children, loading: customLoading }) {
   const router = useRouter();
-  const { isAuthenticated, loading: authLoading } = useAuth();
-  const loading = customLoading !== undefined ? customLoading : authLoading;
+  const { isAuthenticated, isLoading } = useUser();
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  const loading = customLoading !== undefined ? customLoading : isLoading;
 
   useEffect(() => {
-    if (!loading && !isAuthenticated) {
+    if (mounted && !loading && !isAuthenticated) {
       router.push("/");
     }
-  }, [isAuthenticated, loading, router]);
+  }, [mounted, loading, isAuthenticated, router]);
 
-  if (loading) {
+  if (!mounted || loading) {
     return (
       <div
         style={{
@@ -33,17 +37,17 @@ export default function BaseLayout({ children, loading: customLoading }) {
     );
   }
 
-  if (!isAuthenticated) {
-    return null;
-  }
+  if (!isAuthenticated) return null;
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
-      <Header />
-      <Layout>
-        <Sidebar />
-        {children}
+    <App>                                        {/* ✅ 用 App 包住全局一次 */}
+      <Layout style={{ minHeight: "100vh" }}>
+        <Header />
+        <Layout>
+          <Sidebar />
+          {children}
+        </Layout>
       </Layout>
-    </Layout>
+    </App>
   );
-} 
+}

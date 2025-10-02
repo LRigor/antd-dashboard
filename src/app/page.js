@@ -12,7 +12,10 @@ import {
   SettingOutlined,
 } from "@ant-design/icons";
 import Image from "next/image";
-import { useAuth } from "../contexts/AuthContext";
+
+// ⬇️ 改這裡：用 useUser + authAPI
+import { useUser } from "@/components/header/useUser";
+import { authAPI } from "../api-fetch"; // 路徑依你專案，和原 AuthContext 相同
 
 const { Title, Text } = Typography;
 
@@ -22,8 +25,15 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, isAuthenticated, loading: authLoading } = useAuth();
   const { message } = App.useApp();
+
+  // ⬇️ 取代 useAuth：從 useUser 取得狀態與工具
+  const {
+    isAuthenticated,
+    isLoading: authLoading,
+    mutate,
+    setToken,
+  } = useUser();
 
   // 已登录则自动跳转
   useEffect(() => {
@@ -38,8 +48,17 @@ export default function LoginPage() {
     console.log("[LoginPage] submit ->", values);
     try {
       setLoading(true);
-      const res = await login(values); // 会把 token 写入
+
+      // ⬇️ 直接打登入 API（會寫入 token；若未寫入則用 setToken 作雙保險）
+      const res = await authAPI.login(values); // 預期返回 { code, message, data: { token } }
       console.log("[LoginPage] login ok, res =", res);
+
+      const tok = res?.data?.token;
+      if (tok) setToken(tok); // 若你的 authAPI.login 已處理 cookie，這行也可保留當保險
+
+      // 立刻刷新 /api/admin/info，讓全站拿到 user
+      await mutate();
+
       message.success("Login successful!");
 
       const redirectTo = searchParams.get("redirect") || "/dashboard";

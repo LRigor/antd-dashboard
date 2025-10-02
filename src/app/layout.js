@@ -1,4 +1,3 @@
-import { AuthProvider } from '../contexts/AuthContext';
 import { ThemeProvider } from '../contexts/ThemeContext';
 import { SidebarProvider } from '../contexts/SidebarContext';
 import { App as AntApp, ConfigProvider } from 'antd';
@@ -15,15 +14,13 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body suppressHydrationWarning={true}>
         <ThemeProvider>
-          <AuthProvider>
-            <SidebarProvider>
-              <ConfigProvider {...antdConfig}>
-                <AntApp>
-                  {children}
-                </AntApp>
-              </ConfigProvider>
-            </SidebarProvider>
-          </AuthProvider>
+          <SidebarProvider>
+            <ConfigProvider {...antdConfig}>
+              <AntApp>
+                {children}
+              </AntApp>
+            </ConfigProvider>
+          </SidebarProvider>
         </ThemeProvider>
       </body>
     </html>

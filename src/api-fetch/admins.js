@@ -10,8 +10,7 @@ export const adminsAPI = {
     try {
       const res = await apiClient.get(url);
       return res;
-    } catch (error) {
-      console.error('[adminsAPI] getAdminsList error:', error);
+    } catch (error) { 
       throw error;
     }
   },
@@ -22,7 +21,6 @@ export const adminsAPI = {
       const res = await apiClient.get(`/api/admin?id=${id}`);
       return res;
     } catch (error) {
-      console.error('[adminsAPI] getAdminById error:', error);
       throw error;
     }
   },
@@ -33,7 +31,6 @@ export const adminsAPI = {
       const res = await apiClient.post('/api/admin', adminData);
       return res;
     } catch (error) {
-      console.error('[adminsAPI] createAdmin error:', error);
       throw error;
     }
   },
@@ -44,7 +41,6 @@ export const adminsAPI = {
       const res = await apiClient.put('/api/admin', adminData);
       return res;
     } catch (error) {
-      console.error('[adminsAPI] updateAdmin error:', error);
       throw error;
     }
   },
@@ -55,7 +51,6 @@ export const adminsAPI = {
       const res = await apiClient.put('/api/admin/del', { id });
       return res;
     } catch (error) {
-      console.error('[adminsAPI] deleteAdmin error:', error);
       throw error;
     }
   },
@@ -66,7 +61,6 @@ export const adminsAPI = {
       const res = await apiClient.put(`/api/admin/${adminId}/password`, passwordData);
       return res;
     } catch (error) {
-      console.error('[adminsAPI] changePassword error:', error);
       throw error;
     }
   },
@@ -77,7 +71,6 @@ export const adminsAPI = {
       const res = await apiClient.get(`/api/admin/profile/${adminId}`);
       return res;
     } catch (error) {
-      console.error('[adminsAPI] getAdminProfile error:', error);
       throw error;
     }
   },
@@ -85,13 +78,11 @@ export const adminsAPI = {
   // ✅ Get admin info（依賴 apiClient 統一注入 Authorization/namespace）
   getAdminInfo: async () => {
     const url = '/api/admin/info';
-    console.log('[adminsAPI] GET', url);
     try {
       const res = await apiClient.get(url);
       // res 形如 { code, message, data }
       return res;
     } catch (err) {
-      console.error('[adminsAPI] getAdminInfo error:', err);
       throw err;
     }
   },
@@ -102,7 +93,6 @@ export const adminsAPI = {
       const res = await apiClient.put(`/api/admin/profile/${adminId}`, profileData);
       return res;
     } catch (error) {
-      console.error('[adminsAPI] updateAdminProfile error:', error);
       throw error;
     }
   },

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Upload, Button, message } from 'antd';
+import { Upload, Button, message,App } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import { filesAPI } from '@/api-fetch';
 
@@ -11,9 +11,11 @@ export default function UploadAny({
   targetName = 'url',      // 把结果写回哪个字段
   groupField = 'group',     // 从哪个表单字段取 group（没有就用 'biz'）
   accept = '*/*',
+  onUploaded,
 }) {
   const [fileList, setFileList] = useState([]);
   const lastUrlRef = useRef('');
+  const { message } = App.useApp();
 
   // 首次掛載與 props 快照
   useEffect(() => {
@@ -32,7 +34,6 @@ export default function UploadAny({
 
   return (
     <Upload
-      multiple
       showUploadList={false}        // 只要按钮，不显示列表
       accept={accept}
       onChange={(info) => {
@@ -67,7 +68,8 @@ export default function UploadAny({
 
           const full = joinUrl(prefix, paths[0]);
           console.log('[UploadAny] setFieldsValue ->', { [targetName]: full });
-          form?.setFieldsValue?.({ [targetName]: full });
+          form?.setFieldsValue?.({ [targetName]: full, contentType: file?.type });
+          onUploaded?.(full, file);
 
           message.success(`上传成功${paths.length > 1 ? `：共 ${paths.length} 个文件` : ''}`);
         } catch (e) {

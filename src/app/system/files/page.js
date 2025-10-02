@@ -5,8 +5,8 @@ import { message } from "antd";
 import SystemLayout from "@/components/system";
 import DataTable from "@/components/system/DataTable";
 import { columns } from "@/components/columns/files";
-import { fields as formFields } from "@/components/fields/files";
-import { filesAPI } from '@/api-fetch';
+import { getFileFields } from "@/components/fields/files";
+import { filesAPI } from "@/api-fetch";
 
 export default function FilesPage() {
   const [dataSource, setDataSource] = useState([]);
@@ -18,11 +18,13 @@ export default function FilesPage() {
     showSizeChanger: true,
     showQuickJumper: true,
     showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条，共 ${total} 条`,
-    pageSizeOptions: ['10', '20', '50', '100'],
-    position: ['bottomCenter'],
+    pageSizeOptions: ["10", "20", "50", "100"],
+    position: ["bottomCenter"],
   });
 
-  // Load initial data
+  // ✅ 這裡真正得到陣列
+  const formFields = getFileFields({ mode: "edit" });
+
   useEffect(() => {
     loadFilesData(1, 10);
   }, []);
@@ -32,29 +34,19 @@ export default function FilesPage() {
     try {
       const result = await filesAPI.getFilesList({ page, size });
       setDataSource(result.list);
-      setPagination(prev => ({
-        ...prev,
-        current: page,
-        pageSize: size,
-        total: result.total,
-      }));
+      setPagination((prev) => ({ ...prev, current: page, pageSize: size, total: result.total }));
     } catch (error) {
-      console.error('Error loading files:', error);
-      message.error('加载文件列表失败');
+      console.error("Error loading files:", error);
+      message.error("加载文件列表失败");
     } finally {
       setTableLoading(false);
     }
   };
 
-  const handleTableChange = (paginationInfo, filters, sorter) => {
+  const handleTableChange = (paginationInfo) => {
     const { current, pageSize } = paginationInfo;
-    // Update pagination state with new pageSize if it changed
     if (pageSize !== pagination.pageSize) {
-      setPagination(prev => ({
-        ...prev,
-        pageSize,
-        current: 1, // Reset to first page when page size changes
-      }));
+      setPagination((prev) => ({ ...prev, pageSize, current: 1 }));
     }
     loadFilesData(current, pageSize);
   };
@@ -62,36 +54,33 @@ export default function FilesPage() {
   const handleAdd = async (values) => {
     try {
       await filesAPI.uploadFile(values);
-      message.success('文件上传成功');
-      // Reload current page data
+      message.success("文件上传成功");
       loadFilesData(pagination.current, pagination.pageSize);
     } catch (error) {
-      console.error('Error uploading file:', error);
-      message.error('文件上传失败');
+      console.error("Error uploading file:", error);
+      message.error("文件上传失败");
     }
   };
 
   const handleEdit = async (values) => {
     try {
       await filesAPI.updateFile(values);
-      message.success('文件信息更新成功');
-      // Reload current page data
+      message.success("文件信息更新成功");
       loadFilesData(pagination.current, pagination.pageSize);
     } catch (error) {
-      console.error('Error updating file:', error);
-      message.error('文件信息更新失败');
+      console.error("Error updating file:", error);
+      message.error("文件信息更新失败");
     }
   };
 
   const handleDelete = async (record) => {
     try {
       await filesAPI.deleteFile(record.id);
-      message.success('文件删除成功');
-      // Reload current page data
+      message.success("文件删除成功");
       loadFilesData(pagination.current, pagination.pageSize);
     } catch (error) {
-      console.error('Error deleting file:', error);
-      message.error('文件删除失败');
+      console.error("Error deleting file:", error);
+      message.error("文件删除失败");
     }
   };
 
@@ -101,14 +90,18 @@ export default function FilesPage() {
         dataSource={dataSource}
         columns={columns}
         title="文件列表"
-        formFields={formFields}
+        formFields={(mode) => getFileFields({ mode })}   
         onAdd={handleAdd}
         onEdit={handleEdit}
         onDelete={handleDelete}
         loading={tableLoading}
         pagination={pagination}
         onChange={handleTableChange}
+        rowKey="id"
+        /* 若 DataTable 有開關：取消隱藏 */
+        enableAdd 
+        enableEdit
       />
     </SystemLayout>
   );
-} 
+}

@@ -14,8 +14,7 @@ export const authAPI = {
 
     // 寫入（LS + Cookie）
     tokenUtils.setTokens(token);
-    // console.log('[login] stored token len =', tokenUtils.getToken()?.length || 0);
-
+   
     return res; // { code, message, data }
   },
 
@@ -24,10 +23,9 @@ export const authAPI = {
     try {
       tokenUtils.removeTokens();
       // 如需呼叫後端登出可在此加：
-      // await apiClient.post('/api/admin/logout');
+       //await apiClient.post('/api/admin/logout');
       return { success: true };
     } catch (error) {
-      console.error('Logout error:', error);
       tokenUtils.removeTokens();
       throw error;
     }

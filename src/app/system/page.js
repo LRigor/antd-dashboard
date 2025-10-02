@@ -2,24 +2,27 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Layout, Card, Row, Col, Statistic, Button, Space, Table, Tag } from "antd";
-import { useAuth } from "@/contexts/AuthContext";
+import { Layout, Card, Row, Col, Statistic, Button, Space, Table } from "antd";
 import Sidebar from "@/components/sidebar";
 import Header from "@/components/header";
 import SystemLayout from "@/components/system";
 import { logColumns } from "@/components/columns/system-overview";
 
+// ⬇️ 改這裡：使用 useUser 而非 useAuth
+import { useUser } from "@/components/header/useUser";
+
 export default function SystemPage() {
   const router = useRouter();
-  const { isAuthenticated, loading } = useAuth();
+  // ⬇️ 對齊 useUser 的回傳命名
+  const { isAuthenticated, isLoading } = useUser();
 
   useEffect(() => {
-    if (!loading && !isAuthenticated) {
+    if (!isLoading && !isAuthenticated) {
       router.push("/");
     }
-  }, [isAuthenticated, loading, router]);
+  }, [isAuthenticated, isLoading, router]);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div
         style={{

@@ -19,11 +19,11 @@ export const fields = [
   },
   {
     name: "rid",
-    label: "角色ID",
+    label: "层级ID",
     type: "input",
     inputType: "number",
     rules: [
-      { required: true, message: "请输入角色ID" },
+      { required: true, message: "请输入层级ID" },
     ],
   },
   {

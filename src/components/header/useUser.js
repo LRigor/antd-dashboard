@@ -1,4 +1,4 @@
-// src/hooks/useUser.js
+
 'use client'
 
 import Cookies from 'js-cookie'
@@ -36,8 +36,8 @@ export const useUser = () => {
     const url = '/adminlogin?logged-out=true'
     console.log('[useUser] logout() -> remove token and goto', url)
     Cookies.remove('token')
-    await mutate()
-    if (typeof window !== 'undefined') window.location.href = url
+    await mutate() // 清空本地快取
+    router.push(url) // 統一用 router.push
   }
 
   useEffect(() => {
@@ -67,7 +67,8 @@ export const useUser = () => {
     }
 
     setUser(info)
-    console.log('[useUser][effect] setUser ok. namespaces.count=',
+    console.log(
+      '[useUser][effect] setUser ok. namespaces.count=',
       Array.isArray(info?.namespaces) ? info.namespaces.length : 0
     )
 
@@ -92,12 +93,27 @@ export const useUser = () => {
     }
   }, [isLoading, data, error, message, router, setUser])
 
+  // === 新增對齊 AuthProvider 的能力 ===
+  const isAuthenticated = !!token && !!user
+  const hasRole = (role) =>
+    Array.isArray(user?.roles) && user.roles.includes(role)
+  const hasPermission = (perm) =>
+    Array.isArray(user?.permissions) && user.permissions.includes(perm)
+  const refreshUser = async () => {
+    console.log('[useUser] refreshUser() -> mutate()')
+    await mutate()
+  }
+
   return {
     user,
     isLoading,
     mutate,
+    refreshUser,     // 新增：語意化刷新
     setToken,
     logout,
     unLogin,
+    isAuthenticated, // 新增：是否已登入
+    hasRole,         // 新增：角色判斷
+    hasPermission,   // 新增：權限判斷
   }
 }

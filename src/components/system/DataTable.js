@@ -1,35 +1,47 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Table, Button, Space, Modal, Form, Input, Select, message, Popconfirm } from "antd";
+import { Table, Button, Space, Modal, Form, Input, Select, message, Popconfirm, App } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 
 const { Option } = Select;
 
-export default function DataTable({ 
-  dataSource, 
-  columns, 
-  title, 
-  formFields = [], 
-  onAdd, 
-  onEdit, 
+export default function DataTable({
+  dataSource,
+  columns,
+  title,
+  // formFields: [] 或 (mode) => []
+  formFields = [],
+  onAdd,
+  onEdit,
   onDelete,
   loading = false,
   pagination = {},
-  onChange
+  onChange,
+  rowKey,
+  // 只控制「按鈕」是否顯示；不影響欄位顯示
+  enableAdd = true,
+  enableEdit = true,
 }) {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
   const [form] = Form.useForm();
+  const { message } = App.useApp();
+  // ---- mode: 供欄位條件顯示使用 ----
+  const mode = editingRecord ? "edit" : "add";
 
-  // Debug: Check for duplicate keys
+  // ---- 讓 formFields 同時支援陣列或函式 ----
+  const fieldsInput =
+    typeof formFields === "function" ? formFields(mode) : formFields;
+  const fields = Array.isArray(fieldsInput) ? fieldsInput : [];
+
   useEffect(() => {
     if (dataSource && dataSource.length > 0) {
       const keys = dataSource.map((record, index) => record.id || record.key || `row-${index}`);
       const uniqueKeys = new Set(keys);
       if (keys.length !== uniqueKeys.size) {
-        console.warn('DataTable: Duplicate keys detected in dataSource:', keys);
-        console.warn('DataSource:', dataSource);
+        console.warn("DataTable: Duplicate keys detected in dataSource:", keys);
+        console.warn("DataSource:", dataSource);
       }
     }
   }, [dataSource]);
@@ -48,10 +60,10 @@ export default function DataTable({
 
   const handleDelete = async (record) => {
     try {
-      await onDelete(record);
-      message.success('删除成功');
+      await onDelete?.(record);
+      message.success("删除成功");
     } catch (error) {
-      message.error('删除失败');
+      message.error("删除失败");
     }
   };
 
@@ -59,16 +71,17 @@ export default function DataTable({
     try {
       const values = await form.validateFields();
       if (editingRecord) {
-        await onEdit({ ...editingRecord, ...values });
-        message.success('更新成功');
+        await onEdit?.({ ...editingRecord, ...values });
+        message.success("更新成功");
       } else {
-        await onAdd(values);
-        message.success('添加成功');
+        await onAdd?.(values);
+        message.success("添加成功");
       }
       setIsModalVisible(false);
       form.resetFields();
     } catch (error) {
-      console.error('Form validation failed:', error);
+      // 校驗失敗就不提示
+      console.error("Form validation failed:", error);
     }
   };
 
@@ -78,23 +91,17 @@ export default function DataTable({
   };
 
   const handleTableChange = (paginationInfo, filters, sorter) => {
-    if (onChange) {
-      onChange(paginationInfo, filters, sorter);
-    }
+    onChange?.(paginationInfo, filters, sorter);
   };
 
   const actionColumn = {
-    title: '操作',
-    key: 'action',
+    title: "操作",
+    key: "action",
     width: 150,
     render: (_, record) => (
       <Space size="middle">
-        {formFields && formFields.length > 0 && (
-          <Button
-            type="link"
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-          >
+        {enableEdit && fields.length > 0 && (
+          <Button type="link" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
             编辑
           </Button>
         )}
@@ -112,15 +119,23 @@ export default function DataTable({
     ),
   };
 
-  const tableColumns = formFields && formFields.length > 0 ? [...columns, actionColumn] : columns;
+  const tableColumns = fields.length > 0 ? [...columns, actionColumn] : columns;
 
+  // ---- 渲染單一欄位（支援 type:'custom' + render(ctx)）----
   const renderFormField = (field, index) => {
-    // ✅ 支援 schema 自定義渲染（含 type:'custom'）
-    if (typeof field.render === 'function') {
-      const ctx = { form, record: editingRecord, mode: editingRecord ? 'edit' : 'add' };
+    const requiredProp = typeof field.required === 'boolean' ? { required: field.required } : {};
+
+    // 先依據模式過濾可見性
+    if (mode === "add" && field.hiddenOnAdd) return null;
+    if (mode === "edit" && field.hiddenOnEdit) return null;
+    if (Array.isArray(field.showOn) && !field.showOn.includes(mode)) return null;
+
+    // 自定義渲染
+    if (typeof field.render === "function") {
+      const ctx = { form, record: editingRecord, mode };
       const node = field.render(ctx);
-  
-      // 沒有 name：當純節點（例如「上传」按鈕）
+
+      // 沒有 name：當作純展示節點（例如上傳按鈕）
       if (!field.name) {
         return (
           <Form.Item
@@ -139,48 +154,53 @@ export default function DataTable({
           name={field.name}
           label={field.label}
           rules={field.rules || [{ required: true, message: `请输入${field.label}` }]}
+          {...requiredProp}
         >
           {node}
         </Form.Item>
       );
     }
-    
+
+    // 內建型別
     switch (field.type) {
-      case 'input':
+      case "input":
         return (
           <Form.Item
             key={field.name}
             name={field.name}
             label={field.label}
             rules={field.rules || [{ required: true, message: `请输入${field.label}` }]}
+            {...requiredProp}
           >
             <Input placeholder={`请输入${field.label}`} />
           </Form.Item>
         );
-      case 'select':
+      case "select":
         return (
           <Form.Item
             key={field.name}
             name={field.name}
             label={field.label}
             rules={field.rules || [{ required: true, message: `请选择${field.label}` }]}
+            {...requiredProp}
           >
             <Select placeholder={`请选择${field.label}`}>
-              {field.options?.map(option => (
-                <Option key={option.value} value={option.value}>
-                  {option.label}
+              {field.options?.map((opt) => (
+                <Option key={opt.value} value={opt.value}>
+                  {opt.label}
                 </Option>
               ))}
             </Select>
           </Form.Item>
         );
-      case 'textarea':
+      case "textarea":
         return (
           <Form.Item
             key={field.name}
             name={field.name}
             label={field.label}
             rules={field.rules || [{ required: true, message: `请输入${field.label}` }]}
+            {...requiredProp}
           >
             <Input.TextArea rows={4} placeholder={`请输入${field.label}`} />
           </Form.Item>
@@ -201,58 +221,42 @@ export default function DataTable({
 
   return (
     <div>
-      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h3>{title}</h3>
-        {formFields && formFields.length > 0 && (
+        {enableAdd && fields.length > 0 && (
           <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
             添加
           </Button>
         )}
       </div>
-      
+
       <Table
         columns={tableColumns}
         dataSource={dataSource}
-        rowKey={(record) => {
-          // Ensure we always have a unique key
-          if (record.uniqueKey !== undefined && record.uniqueKey !== null) {
-            return record.uniqueKey;
-          }
-          if (record.id !== undefined && record.id !== null) {
-            return `id-${record.id}`;
-          }
-          if (record.key !== undefined && record.key !== null) {
-            return `key-${record.key}`;
-          }
-          // Generate a unique key based on record properties
-          const recordStr = JSON.stringify(record);
-          return `row-${recordStr.length}-${Date.now()}`;
-        }}
+        rowKey={rowKey || ((record) => record.id || record.key)}
         loading={loading}
         pagination={pagination}
         onChange={handleTableChange}
       />
 
-      {formFields && formFields.length > 0 && (
+      {fields.length > 0 && (
         <Modal
-          title={editingRecord ? '编辑' : '添加'}
+          title={editingRecord ? "编辑" : "添加"}
           open={isModalVisible}
           onOk={handleModalOk}
           onCancel={handleModalCancel}
           width={600}
         >
-          <Form
-            form={form}
-            layout="vertical"
-          >
-            {formFields.map((field, index) => (
-  <div key={`${field.name || field.label || 'custom'}-${index}`}>
-    {renderFormField(field, index)}
-  </div>
-))}
+          <Form form={form} layout="vertical">
+            {fields.map((field, index) => {
+              const node = renderFormField(field, index);
+              return node ? (
+                <div key={`${field.name || field.label || "custom"}-${index}`}>{node}</div>
+              ) : null;
+            })}
           </Form>
         </Modal>
       )}
     </div>
   );
-} 
+}

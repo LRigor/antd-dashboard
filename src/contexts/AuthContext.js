@@ -1,3 +1,5 @@
+const { useEffect } = require("react");
+
 /*
 
 'use client';

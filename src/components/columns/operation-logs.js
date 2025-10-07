@@ -4,29 +4,8 @@ import { UserOutlined } from "@ant-design/icons";
 export const columns = [
   {
     title: "操作用户",
-    dataIndex: "username",
-    key: "username",
-    width: 120,
-    render: (username, record) => (
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        <Avatar icon={<UserOutlined />} style={{ marginRight: 8 }} />
-        <div>
-          <div>{record.name}</div>
-          <div style={{ fontSize: '12px', color: '#999' }}>@{username}</div>
-        </div>
-      </div>
-    ),
-  },
-  {
-    title: "模块",
-    dataIndex: "module",
-    key: "module",
-    width: 120,
-  },
-  {
-    title: "操作",
-    dataIndex: "operation",
-    key: "operation",
+    dataIndex: "uname",
+    key: "uname",
     width: 120,
   },
   {
@@ -47,37 +26,26 @@ export const columns = [
   },
   {
     title: "请求地址",
-    dataIndex: "url",
-    key: "url",
+    dataIndex: "uri",
+    key: "uri",
+    width: 200,
+  }, 
+  {
+    title: "请求参数",
+    dataIndex: "req",
+    key: "req",
     width: 200,
   },
   {
-    title: "IP地址",
-    dataIndex: "ip",
-    key: "ip",
-    width: 130,
-  },
-  {
-    title: "状态",
-    dataIndex: "status",
-    key: "status",
-    width: 100,
-    render: (status) => (
-      <Tag color={status === "success" ? "green" : "red"}>
-        {status === "success" ? "成功" : "失败"}
-      </Tag>
-    ),
-  },
-  {
     title: "耗时(ms)",
-    dataIndex: "duration",
-    key: "duration",
+    dataIndex: "useTime",
+    key: "useTime",
     width: 100,
   },
   {
     title: "操作时间",
-    dataIndex: "operationTime",
-    key: "operationTime",
+    dataIndex: "createdAt",
+    key: "createdAt",
     width: 180,
   },
 ]; 

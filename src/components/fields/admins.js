@@ -23,7 +23,7 @@ export const fields = [
     type: "input",
     inputType: "number",
     rules: [
-      { required: true, message: "请输入层级ID" },
+      { required: false, message: "请输入层级ID" },
     ],
   },
   {
@@ -38,7 +38,7 @@ export const fields = [
       { value: 5, label: "访客" },
     ],
     rules: [
-      { required: true, message: "请选择等级" },
+      { required: false, message: "请选择等级" },
     ],
   },
   {
@@ -47,19 +47,10 @@ export const fields = [
     type: "input",
   },
   {
-    name: "location",
-    label: "位置",
-    type: "input",
-  },
-  {
-    name: "utc",
-    label: "时区",
-    type: "input",
-  },
-  {
     name: "desc",
     label: "描述",
     type: "textarea",
+    rules: [{ required: false, message: "请输入描述" }],
   },
   {
     name: "status",

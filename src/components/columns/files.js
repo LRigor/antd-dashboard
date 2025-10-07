@@ -1,12 +1,12 @@
 'use client';
 
-import { Tag, Button, Space, Modal, message,App } from "antd";
+import { Tag, Button, Space, Modal,App,message } from "antd";
 import {
   EyeOutlined, DownloadOutlined,
   FileOutlined, FileImageOutlined, FilePdfOutlined, FileZipOutlined
 } from "@ant-design/icons";
 import React, { useState } from 'react';
-const { message } = App.useApp();
+
 
 /** ---------- URL 补全：非 http(s) 统一补成固定前缀 ---------- */
 const STATIC_PREFIX = 'https://file.earnquest.id/';

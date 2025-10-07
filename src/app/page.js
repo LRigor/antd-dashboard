@@ -2,14 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Form, Input, Button, Tabs, Space, Typography, App } from "antd";
+import { Form, Input, Button, Tabs, Typography, App } from "antd";
 import {
   UserOutlined,
   LockOutlined,
   EyeInvisibleOutlined,
   EyeTwoTone,
-  AudioOutlined,
-  SettingOutlined,
 } from "@ant-design/icons";
 import Image from "next/image";
 
@@ -21,13 +19,11 @@ const { Title, Text } = Typography;
 
 export default function LoginPage() {
   const [form] = Form.useForm();
-  const [activeTab, setActiveTab] = useState("account");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const { message } = App.useApp();
 
-  // ⬇️ 取代 useAuth：從 useUser 取得狀態與工具
   const {
     isAuthenticated,
     isLoading: authLoading,
@@ -39,33 +35,26 @@ export default function LoginPage() {
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
       const redirectTo = searchParams.get("redirect") || "/dashboard";
-      console.log("[LoginPage] already authed, redirect to:", redirectTo);
       router.push(redirectTo);
     }
   }, [isAuthenticated, authLoading, router, searchParams]);
 
   const onFinish = async (values) => {
-    console.log("[LoginPage] submit ->", values);
     try {
       setLoading(true);
 
-      // ⬇️ 直接打登入 API（會寫入 token；若未寫入則用 setToken 作雙保險）
-      const res = await authAPI.login(values); // 預期返回 { code, message, data: { token } }
-      console.log("[LoginPage] login ok, res =", res);
+      const res = await authAPI.login(values);
 
       const tok = res?.data?.token;
-      if (tok) setToken(tok); // 若你的 authAPI.login 已處理 cookie，這行也可保留當保險
+      if (tok) setToken(tok);
 
-      // 立刻刷新 /api/admin/info，讓全站拿到 user
       await mutate();
 
       message.success("Login successful!");
 
       const redirectTo = searchParams.get("redirect") || "/dashboard";
-      console.log("[LoginPage] redirect to:", redirectTo);
       router.replace(redirectTo); // 用 replace 防止返回到登录页
     } catch (error) {
-      console.error("Login error:", error);
       message.error("Login failed. Please check your credentials.");
     } finally {
       setLoading(false);
@@ -84,21 +73,13 @@ export default function LoginPage() {
           autoComplete="off"
           size="large"
         >
-          <Form.Item name="location" initialValue="japan" hidden>
-            <Input />
-          </Form.Item>
-          <Form.Item name="otp_code" initialValue="" hidden>
-            <Input />
-          </Form.Item>
-
           <Form.Item
             name="uname"
             rules={[{ required: true, message: "Please input your username!" }]}
           >
             <Input
               prefix={<UserOutlined />}
-              placeholder="Username: admin or user"
-              value="admin"
+              placeholder="Username"
             />
           </Form.Item>
 
@@ -108,11 +89,10 @@ export default function LoginPage() {
           >
             <Input.Password
               prefix={<LockOutlined />}
-              placeholder="Password: 1"
+              placeholder="Password"
               iconRender={(visible) =>
                 visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />
               }
-              value="1"
             />
           </Form.Item>
 
@@ -177,7 +157,7 @@ export default function LoginPage() {
         </div>
 
         {/* Login Form */}
-        <Tabs activeKey={activeTab} onChange={setActiveTab} items={items} centered />
+        <Tabs defaultActiveKey="account" items={items} centered />
       </div>
 
       {/* Footer */}
@@ -190,18 +170,6 @@ export default function LoginPage() {
           bottom: "20px",
         }}
       >
-        <div style={{ marginBottom: "8px" }}>
-          <Space>
-            <span>
-              <AudioOutlined style={{ marginRight: "4px" }} />
-              Ant Design Pro
-            </span>
-            <span>
-              <SettingOutlined style={{ marginRight: "4px" }} />
-              Ant Design
-            </span>
-          </Space>
-        </div>
         <div>© Powered by Ant Design</div>
       </div>
     </div>

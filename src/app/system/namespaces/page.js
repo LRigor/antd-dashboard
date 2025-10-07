@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { message } from "antd";
+import { message, App } from "antd";
 import SystemLayout from "@/components/system";
 import DataTable from "@/components/system/DataTable";
 import { columns } from "@/components/columns/namespaces";
@@ -11,6 +11,7 @@ import { namespacesAPI } from '@/api-fetch';
 export default function NamespacesPage() {
   const [dataSource, setDataSource] = useState([]);
   const [tableLoading, setTableLoading] = useState(false);
+  const { message } = App.useApp();
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,

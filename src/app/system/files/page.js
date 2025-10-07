@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { message } from "antd";
 import SystemLayout from "@/components/system";
 import DataTable from "@/components/system/DataTable";
 import { columns } from "@/components/columns/files";
 import { getFileFields } from "@/components/fields/files";
 import { filesAPI } from "@/api-fetch";
+import { App } from "antd";
 
 export default function FilesPage() {
+  const { message } = App.useApp();
   const [dataSource, setDataSource] = useState([]);
   const [tableLoading, setTableLoading] = useState(false);
   const [pagination, setPagination] = useState({

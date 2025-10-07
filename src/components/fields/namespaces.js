@@ -47,3 +47,4 @@ export const namespacesFields = [
 
 // For backward compatibility
 export const fields = namespacesFields; 
+

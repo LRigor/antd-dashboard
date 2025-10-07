@@ -1,9 +1,20 @@
 import { NextResponse } from 'next/server';
 
 const protectedRoutes = ['/dashboard', '/profile', '/settings', '/api/protected'];
-const publicRoutes = ['/', '/login', '/register'];
+const publicRoutes = ['/', '/login', '/register','/adminlogin'];
 
 export function middleware(request) { const { pathname, origin, search } = request.nextUrl;
+
+
+
+
+
+function withDebug(resp, info) {
+  resp.headers.set('x-debug-mw', info);
+  console.log('[MW]', info);
+  return resp;
+}
+
 
   const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route));
   const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
@@ -17,16 +28,29 @@ export function middleware(request) { const { pathname, origin, search } = reque
   // 帶上 namespace（無則預設 '1'）
   const namespace = request.cookies.get('namespace')?.value || '1';
 
+  console.log(
+    '[MW:enter]',
+    'path=', pathname + search,
+    'token.len=', (request.cookies.get('token')?.value || request.cookies.get('auth-token')?.value || '').length,
+    'isProtected=', protectedRoutes.some((r) => pathname.startsWith(r)),
+    'isPublic=', publicRoutes.some((r) => pathname.startsWith(r)),
+    'origin=', origin
+  );
+
   // 未登入且訪問保護路由 → 轉去登入
   if (isProtectedRoute && !token) {
     const loginUrl = new URL('/', request.url);
     loginUrl.searchParams.set('redirect', pathname);
-    return NextResponse.redirect(loginUrl);
+    console.log('[MW:decision] protected & no token -> redirect', {
+      from: pathname,
+      to: loginUrl.pathname + loginUrl.search,
+    });
+    return withDebug(NextResponse.redirect(loginUrl), `redirect->/adminlogin from ${pathname}`);
   }
 
   // 已登入卻訪問公開頁 → 轉去 dashboard
-  if (token && (pathname === '/' || pathname === '/login' || pathname === '/register')) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+  if (token && (pathname === '/' || pathname === '/login' || pathname === '/register' || pathname === '/adminlogin')) {
+    return withDebug(NextResponse.redirect(new URL('/dashboard', request.url)), `redirect->/dashboard from ${pathname}`);
   }
 
   // ---- 轉發 /api/* 到外部 API：帶 Authorization + namespace ----
@@ -34,12 +58,16 @@ export function middleware(request) { const { pathname, origin, search } = reque
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
     if (apiUrl && apiUrl !== origin) {
       const externalUrl = new URL(pathname + search, apiUrl);
+      console.log('[MW:decision] rewrite to external', {
+        from: pathname + search,
+        to: externalUrl.toString(),
+      });
 
       const requestHeaders = new Headers(request.headers);
       if (token) requestHeaders.set('Authorization', `Bearer ${token}`);
       requestHeaders.set('namespace', namespace);
 
-      return NextResponse.rewrite(externalUrl, { request: { headers: requestHeaders } });
+      return withDebug(NextResponse.rewrite(externalUrl, { request: { headers: requestHeaders } }), `rewrite->${externalUrl}`);
     }
   }
 
@@ -48,7 +76,9 @@ export function middleware(request) { const { pathname, origin, search } = reque
   if (token) requestHeaders.set('Authorization', `Bearer ${token}`);
   requestHeaders.set('namespace', namespace);
 
-  return NextResponse.next({ request: { headers: requestHeaders } });
+ // 預設放行（在這裡也打點）
+const next = NextResponse.next({ request: { headers: requestHeaders } });
+return withDebug(next, `next ${pathname}`);
 }
 
 export const config = {

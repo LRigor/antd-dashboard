@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Form, Input, Select, DatePicker, Button, Space, message } from "antd";
+import { Form, Input, Select, DatePicker, Button, Space, App } from "antd";
 import dayjs from "dayjs";
 import SystemLayout from "@/components/system";
 import DataTable from "@/components/system/DataTable";
@@ -19,7 +19,8 @@ const METHOD_OPTIONS = [
 ];
 
 export default function OperationLogsPage() {
-  const [form] = Form.useForm();
+  const [searchForm] = Form.useForm(); 
+  const { message } = App.useApp();
   const [dataSource, setDataSource] = useState([]);
   const [tableLoading, setTableLoading] = useState(false);
 
@@ -101,7 +102,7 @@ export default function OperationLogsPage() {
 
   // 🔍 搜尋
   const onSearch = async () => {
-    const v = await form.validateFields();
+    const v = await searchForm.validateFields();
     const [start, end] = v.createdAt || [];
     const next = {
       uname: v.uname?.trim() || "",
@@ -119,7 +120,7 @@ export default function OperationLogsPage() {
 
   // ♻️ 重置
   const onReset = () => {
-    form.resetFields();
+    searchForm.resetFields();
     const next = { uname: "", method: "", uri: "", q: "", startAt: "", endAt: "" };
     setFilters(next);
     setPagination((p) => ({ ...p, current: 1 }));
@@ -142,7 +143,7 @@ export default function OperationLogsPage() {
     <SystemLayout title="操作日志" subtitle="Operation Logs">
       {/* 搜尋區 */}
       <div style={{ marginBottom: 12 }}>
-        <Form form={form} layout="inline" onFinish={onSearch} initialValues={{ method: "" }} style={{ rowGap: 12 }}>
+        <Form form={searchForm} layout="inline" onFinish={onSearch} initialValues={{ method: "" }} style={{ rowGap: 12 }}>
           <Form.Item label="操作用户" name="uname">
             <Input placeholder="uname" allowClear style={{ width: 160 }} />
           </Form.Item>

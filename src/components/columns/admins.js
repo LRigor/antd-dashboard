@@ -50,12 +50,6 @@ export const columns = [
     ),
   },
   {
-    title: "更新次数",
-    dataIndex: "updatedCount",
-    key: "updatedCount",
-    width: 100,
-  },
-  {
     title: "创建时间",
     dataIndex: "createdAt",
     key: "createdAt",

@@ -28,7 +28,7 @@ async function withTrace(label, fn) {
 export default function LoginLogsPage() {
   const [dataSource, setDataSource] = useState([]);
   const [filters, setFilters] = useState({uid:'',ip:'',uname:'',});
-  const [form] = Form.useForm();
+  const [searchForm] = Form.useForm(); 
   const { message } = App.useApp();
   const [tableLoading, setTableLoading] = useState(false);
   const [pagination, setPagination] = useState({
@@ -188,7 +188,7 @@ export default function LoginLogsPage() {
   });
 
   const onSearch = async () => {
-    const v = await form.validateFields();
+    const v = await searchForm.validateFields();
     // 可选：清理空格
     const f = {
       uid: (v.uid || '').trim(),
@@ -202,7 +202,7 @@ export default function LoginLogsPage() {
   };
   
   const onReset = () => {
-    form.resetFields();
+    searchForm.resetFields();
     const empty = { uid: '', ip: '', uname: '', location: '' };
     setFilters(empty);
     loadLoginLogsData(1, pagination.pageSize, { sortField: 'createdAt', sortOrder: 'desc' }, empty);
@@ -213,7 +213,7 @@ export default function LoginLogsPage() {
       <SystemLayout title="登录日志" subtitle="Login Logs">
         {/* 🔴 这块就是你图里红框的位置：搜索栏 */}
         <div style={{ marginBottom: 16 }}>
-          <Form form={form} layout="inline" onFinish={onSearch}>
+          <Form form={searchForm} layout="inline" onFinish={onSearch}>
             <Form.Item name="ip" label="IP">
               <Input allowClear placeholder="例如 8.8.8.8 / ::1" onPressEnter={onSearch} />
             </Form.Item>
@@ -237,7 +237,7 @@ export default function LoginLogsPage() {
           loading={tableLoading}
           pagination={pagination}
           onChange={handleTableChange}
-          rowKey="uniqueKey"
+          rowKey={(r) => r.uniqueKey ?? r.id ?? r.key}
         />
       </SystemLayout>
     );

@@ -125,7 +125,7 @@ function InlinePreview({ url, contentType, disabled }) {
         onCancel={() => setOpen(false)}
         footer={null}
         width={980}
-        destroyOnClose
+        destroyOnHidden
         maskClosable
       >
         <PreviewContent url={url} contentType={contentType} />

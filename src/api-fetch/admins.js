@@ -48,7 +48,7 @@ export const adminsAPI = {
   // Delete admin
   deleteAdmin: async (id) => {
     try {
-      const res = await apiClient.put('/api/admin/del', { id });
+      const res = await apiClient.put('/api/admin/del', { ids: [id] });
       return res;
     } catch (error) {
       throw error;

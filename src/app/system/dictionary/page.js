@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Form, Input, DatePicker, Button, Space, message } from "antd";
+import { Form, Input, DatePicker, Button, Space, App } from "antd";
 import dayjs from "dayjs";
 import SystemLayout from "@/components/system";
 import DataTable from "@/components/system/DataTable";
@@ -12,9 +12,10 @@ import { dictionariesAPI } from "@/api-fetch";
 const { RangePicker } = DatePicker;
 
 export default function DictionaryPage() {
-  const [form] = Form.useForm();
+  const [searchForm] = Form.useForm(); 
   const [dataSource, setDataSource] = useState([]);
   const [tableLoading, setTableLoading] = useState(false);
+  const { message } = App.useApp();
 
   // ✅ 搜尋條件集中管理
   const [filters, setFilters] = useState({
@@ -109,7 +110,7 @@ export default function DictionaryPage() {
 
   // 🔍 搜尋
   const onSearch = async () => {
-    const v = await form.validateFields();
+    const v = await searchForm.validateFields();
     const [start, end] = v.createdAt || [];
     const next = {
       k: v.k?.trim() || "",
@@ -126,7 +127,7 @@ export default function DictionaryPage() {
 
   // ♻️ 重置
   const onReset = () => {
-    form.resetFields();
+    searchForm.resetFields();
     const next = { k: "", group: "", type: "", q: "", startAt: "", endAt: "" };
     setFilters(next);
     setPagination((p) => ({ ...p, current: 1 }));
@@ -139,7 +140,7 @@ export default function DictionaryPage() {
       <div style={{ marginBottom: 12 }}>
         <Form
           layout="inline"
-          form={form}
+          form={searchForm}
           onFinish={onSearch}
           style={{ rowGap: 12 }}
         >

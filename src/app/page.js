@@ -18,7 +18,6 @@ import { authAPI } from "../api-fetch"; // 路徑依你專案，和原 AuthConte
 const { Title, Text } = Typography;
 
 export default function LoginPage() {
-  const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -67,7 +66,6 @@ export default function LoginPage() {
       label: "Account Login",
       children: (
         <Form
-          form={form}
           name="login"
           onFinish={onFinish}
           autoComplete="off"

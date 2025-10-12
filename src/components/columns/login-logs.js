@@ -65,22 +65,19 @@ export const columns = [
         cancelText="取消"
         // ✅ 关键：确认时触发删除
         onConfirm={() => {
-          console.debug('[login-logs columns] confirm delete -> id=', record?.id, 'record=', record);
-          // 如果你的 DataTable 会把 onDelete 作为 prop 传进来并在 render 里闭包不到，
-          // 这里可以直接派发一个自定义事件，或（推荐）直接调用页面传入的回调：
-          // ——最小改动：直接触发全局事件（不依赖 DataTable）
+          // 直接触发全局事件（不依赖 DataTable）
           const evt = new CustomEvent('loginLogs:delete', { detail: record });
           window.dispatchEvent(evt);
         }}
         onCancel={() => {
-          console.debug('[login-logs columns] cancel delete -> id=', record?.id);
+          // Cancel delete
         }}
       >
         <Button
           type="link"
           danger
           icon={<DeleteOutlined />}
-          onClick={() => console.debug('[login-logs columns] click delete -> id=', record?.id)}
+          onClick={() => {}}
         >
           删除
         </Button>

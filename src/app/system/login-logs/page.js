@@ -7,20 +7,16 @@ import DataTable from "@/components/system/DataTable";
 import { columns } from "@/components/columns/login-logs";
 import { loginLogsAPI } from '../../../api-fetch';
 
-const DEBUG =
-  typeof window !== "undefined" && !!localStorage.getItem("DEBUG_LOGIN_LOGS_PAGE");
+const DEBUG = false;
 
 function dbg(...args) {
-  if (DEBUG) console.debug("[LoginLogsPage]", ...args);
+  // Debug disabled
 }
 async function withTrace(label, fn) {
-  const t0 = performance.now();
   try {
     const res = await fn();
-    dbg(label, "-> OK", `${(performance.now() - t0).toFixed(1)}ms`);
     return res;
   } catch (e) {
-    console.error(`[LoginLogsPage] ${label} -> FAIL`, e);
     throw e;
   }
 }
@@ -48,7 +44,7 @@ export default function LoginLogsPage() {
     // 1) 监听来自 columns 的删除事件
     const onDeleteEvt = (e) => {
       const rec = e && e.detail;
-      console.debug('[LoginLogsPage] received event loginLogs:delete ->', rec);
+      // Received delete event
       if (rec) {
         handleDelete(rec); // 直接用你已有的删除函数
       }
@@ -56,7 +52,7 @@ export default function LoginLogsPage() {
     window.addEventListener('loginLogs:delete', onDeleteEvt);
   
     // 2) 首次加载列表
-    console.debug('mount -> loadLoginLogsData page=1 size=', pagination.pageSize);
+    // Mount effect
     loadLoginLogsData(1, pagination.pageSize, { sortField: 'createdAt', sortOrder: 'desc' });
   
     // 3) 清理监听器
@@ -74,7 +70,7 @@ export default function LoginLogsPage() {
     filters = {} // ✅ 只保留 filters
   ) => {
     setTableLoading(true);
-    dbg("loadLoginLogsData start", { page, size });
+    // Load start
   
     try {
       const effSortField = extra.sortField || 'createdAt';
@@ -91,29 +87,28 @@ export default function LoginLogsPage() {
           })
       );
 
-      dbg("API result keys:", Object.keys(result || {}));
-      dbg("result.total=", result?.total, "result.list.isArray=", Array.isArray(result?.list));
+      // API result processed
 
       // Validate and ensure unique IDs
       if (result?.list && Array.isArray(result.list)) {
         const ids = result.list.map((item) => item.id);
         const uniqueIds = new Set(ids);
         if (ids.length !== uniqueIds.size) {
-          console.warn("LoginLogs: Duplicate IDs detected in API response:", ids);
+          // Duplicate IDs detected
           // Add unique identifiers to prevent React key conflicts
           const processedList = result.list.map((item, index) => ({
             ...item,
             uniqueKey: `${item.id ?? "unknown"}-${index}`,
           }));
           setDataSource(processedList);
-          dbg("processedList length=", processedList.length);
+          // Processed list
         } else {
           setDataSource(result.list);
-          dbg("setDataSource length=", result.list.length);
+          // Set data source
         }
       } else {
         setDataSource([]);
-        dbg("setDataSource -> [] (no list)");
+        // Set empty data source
       }
 
       setPagination((prev) => ({
@@ -123,13 +118,13 @@ export default function LoginLogsPage() {
         total: result?.total ?? 0,
       }));
       
-      dbg("pagination updated ->", { page, size, total: result?.total ?? 0 });
+      // Pagination updated
     } catch (error) {
-      console.error("Error loading login logs:", error);
+      // Error loading login logs
       message.error("加载登录日志列表失败");
     } finally {
       setTableLoading(false);
-      dbg("loadLoginLogsData end");
+      // Load end
     }
   };
 
@@ -144,7 +139,7 @@ export default function LoginLogsPage() {
       s?.order === 'descend' ? 'desc' :
       undefined;
   
-    dbg("handleTableChange", { current, pageSize, filters, sorter, sortField, sortOrder });
+    // Handle table change
   
     if (pageSize !== pagination.pageSize) {
       setPagination(prev => ({ ...prev, pageSize, current: 1 }));
@@ -157,13 +152,13 @@ export default function LoginLogsPage() {
   
 
   const handleDelete = async (record) => {
-    dbg("handleDelete click -> record:", record);
+    // Handle delete
     if (!record) {
-      console.error("handleDelete called without record");
+      // No record provided
       return;
     }
     if (!record.id && record.id !== 0) {
-      console.error("handleDelete: record.id is invalid ->", record.id);
+      // Invalid record ID
     }
 
     try {
@@ -172,20 +167,15 @@ export default function LoginLogsPage() {
       );
       message.success("登录日志删除成功");
       // Reload current page data
-      dbg("reload after delete -> page=", pagination.current, "size=", pagination.pageSize);
+      // Reload after delete
       loadLoginLogsData(pagination.current, pagination.pageSize);
     } catch (error) {
-      console.error("Error deleting login log:", error);
+      // Error deleting login log
       message.error("删除登录日志失败");
     }
   };
 
-  dbg("render", {
-    rows: dataSource.length,
-    page: pagination.current,
-    size: pagination.pageSize,
-    loading: tableLoading,
-  });
+  // Render effect
 
   const onSearch = async () => {
     const v = await searchForm.validateFields();

@@ -148,7 +148,7 @@ export const AuthProvider = ({ children }) => {
       const info = res?.data;
       if (info) setUser(info);
     } catch (error) {
-      console.error('Failed to refresh user data:', error);
+      // Failed to refresh user data
     }
   };
 
@@ -171,5 +171,8 @@ export const AuthProvider = ({ children }) => {
 
 export default AuthContext;
 */
+
+
+
 
 

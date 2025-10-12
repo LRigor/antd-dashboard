@@ -17,6 +17,7 @@ function normalizeOptions(src) {
 
 export default function DataTable(props) {
   const {
+    notify = true, //是否由DataTable來發布錯誤訊息
     dataSource,
     columns,
     title,
@@ -30,27 +31,41 @@ export default function DataTable(props) {
     rowKey,
     enableAdd = true,
     enableEdit = true,
+    // ✅ 新增：可選，按 id 拉詳情用的函式 (id) => Promise<{ code, data }>
+    fetchById,
   } = props;
 
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
-  const [form] = Form.useForm();                  // ✅ 唯一的 form 實例
+  const [form] = Form.useForm();
   const { message } = App.useApp();
 
   const mode = editingRecord ? "edit" : "add";
-
   const fieldsInput = typeof formFields === "function" ? formFields(mode) : formFields;
   const fields = Array.isArray(fieldsInput) ? fieldsInput : [];
+
+  // ---- 初始/props 變更觀測 ----
+  useEffect(() => {
+    // Mount effect
+  }, []); // mount
+
+  useEffect(() => {
+    // Props change effect
+  }, [dataSource, loading, pagination]);
 
   useEffect(() => {
     if (dataSource && dataSource.length > 0) {
       const keys = dataSource.map((record, index) => record.id || record.key || `row-${index}`);
       const unique = new Set(keys);
       if (keys.length !== unique.size) {
-        console.warn("DataTable: Duplicate keys detected in dataSource:", keys);
+        // Duplicate keys detected
       }
     }
   }, [dataSource]);
+
+  useEffect(() => {
+    // Modal state effect
+  }, [isModalVisible, mode, editingRecord]);
 
   const handleAdd = () => {
     setEditingRecord(null);
@@ -58,18 +73,52 @@ export default function DataTable(props) {
     setIsModalVisible(true);
   };
 
-  const handleEdit = (record) => {
+  // 🔧 從 record/詳情推導 namespace（字串，方便 Select.value 對上）
+  const deriveNamespace = (src) => {
+    if (!src) return undefined;
+    if (src.namespace != null) return String(src.namespace);
+    const nsList = Array.isArray(src.namespaces) ? src.namespaces : [];
+    const def = nsList.find((x) => Number(x?.isDefault) === 1) || nsList[0];
+    return def?.namespace != null ? String(def.namespace) : undefined;
+  };
+
+  const handleEdit = async (record) => {
     setEditingRecord(record);
-    form.setFieldsValue(record);
+    form.setFieldsValue({
+      ...record,
+      namespaces: Array.isArray(record.namespaces)
+        ? record.namespaces.map((n) => String(typeof n === 'object' ? n.namespace : n))
+        : record.namespace != null ? [String(record.namespace)] : [],
+    });
     setIsModalVisible(true);
+
+    // 若當列缺命名空間，且外部提供了 fetchById，則兜底補打一支詳情
+    const hasNs =
+      record?.namespace != null ||
+      (Array.isArray(record?.namespaces) && record.namespaces.length > 0);
+
+    if (!hasNs && typeof fetchById === "function" && record?.id != null) {
+      try {
+        const res = await fetchById(record.id);
+        const detail = res?.data;
+
+        const ns = deriveNamespace(detail);
+        const merged = { ...record, ...detail, ...(ns != null ? { namespace: ns } : {}) };
+
+        form.setFieldsValue(merged);
+        setEditingRecord(merged); // 同步內部狀態，提交時帶到
+      } catch (e) {
+        // fetchById error
+      }
+    }
   };
 
   const handleDelete = async (record) => {
     try {
       await onDelete?.(record);
-      message.success("删除成功");
-    } catch {
-      message.error("删除失败");
+      if (notify) message.success("删除成功");
+    } catch (e) {
+      if (notify) message.error("删除失败");
     }
   };
 
@@ -77,16 +126,17 @@ export default function DataTable(props) {
     try {
       const values = await form.validateFields();
       if (editingRecord) {
-        await onEdit?.({ ...editingRecord, ...values });
-        message.success("更新成功");
+        const payload = { ...editingRecord, ...values };
+        await onEdit?.(payload);
+        if (notify) message.success("更新成功");
       } else {
         await onAdd?.(values);
-        message.success("添加成功");
+        if (notify) message.success("添加成功");
       }
       setIsModalVisible(false);
       form.resetFields();
-    } catch {
-      // 校驗失敗不提示
+    } catch (e) {
+      // Modal validation failed or handler threw
     }
   };
 
@@ -106,7 +156,12 @@ export default function DataTable(props) {
     render: (_, record) => (
       <Space size="middle">
         {enableEdit && fields.length > 0 && (
-          <Button type="link" onClick={() => handleEdit(record)}>
+          <Button
+            type="link"
+            onClick={() => {
+              handleEdit(record);
+            }}
+          >
             编辑
           </Button>
         )}
@@ -136,13 +191,19 @@ export default function DataTable(props) {
 
     // custom 渲染
     if (typeof field.render === "function") {
-      const ctx = { 
-        form, 
-        record: editingRecord, 
+      const ctx = {
+        form,
+        record: editingRecord,
         mode,
-        value: editingRecord?.[field.name], // 添加当前字段的值
-        onChange: (val) => form.setFieldValue(field.name, val) // 添加 onChange 函数
+        value: editingRecord?.[field.name],
+        onChange: (val) => {
+          // 使用 setTimeout 避免循环引用
+          setTimeout(() => {
+            form.setFieldValue(field.name, val);
+          }, 0);
+        },
       };
+      // Render custom field
       const node = field.render(ctx);
       if (!field.name) {
         return (
@@ -173,8 +234,8 @@ export default function DataTable(props) {
           Node = <Input.Password placeholder={`请输入${field.label}`} />;
         } else if (it === "number") {
           Node = <Input type="number" placeholder={`请输入${field.label}`} />;
-          // 或者用 <InputNumber />，看你後端需求
         }
+        // Render input field
         return (
           <Form.Item
             key={field.name}
@@ -187,12 +248,14 @@ export default function DataTable(props) {
           </Form.Item>
         );
       }
-      
+
       case "select": {
-        const raw = typeof field.options === "function"
-          ? field.options({ mode, record: editingRecord, form })
-          : field.options;
+        const raw =
+          typeof field.options === "function"
+            ? field.options({ mode, record: editingRecord, form })
+            : field.options;
         const opts = normalizeOptions(raw);
+        // Render select field
 
         return (
           <Form.Item
@@ -202,7 +265,12 @@ export default function DataTable(props) {
             rules={field.rules || [{ required: true, message: `请选择${field.label}` }]}
             {...requiredProp}
           >
-            <Select placeholder={`请选择${field.label}`} allowClear getPopupContainer={(t) => t.parentNode}>
+            <Select
+              placeholder={`请选择${field.label}`}
+              allowClear
+              getPopupContainer={(t) => t.parentNode}
+              onChange={(v) => {}}
+            >
               {opts.map((opt) => (
                 <Option key={opt.value} value={opt.value}>
                   {opt.label}
@@ -214,6 +282,7 @@ export default function DataTable(props) {
       }
 
       case "textarea":
+        // Render textarea field
         return (
           <Form.Item
             key={field.name}
@@ -227,6 +296,7 @@ export default function DataTable(props) {
         );
 
       default:
+        // Render default field
         return (
           <Form.Item
             key={field.name}
@@ -252,7 +322,7 @@ export default function DataTable(props) {
       </div>
 
       <Table
-        columns={tableColumns}
+        columns={fields.length > 0 ? [...columns, actionColumn] : columns}
         dataSource={dataSource}
         rowKey={rowKey || ((record) => record.id || record.key)}
         loading={loading}
@@ -269,7 +339,6 @@ export default function DataTable(props) {
           destroyOnHidden
           width={600}
         >
-          {/* ✅ 同一個 form 實例綁在這裡 */}
           <Form form={form} layout="vertical">
             {fields.map((field, index) => {
               const node = renderFormField(field, index);

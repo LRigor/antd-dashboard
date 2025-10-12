@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { message, App } from "antd";
+import { App } from "antd";
 import SystemLayout from "@/components/system";
 import DataTable from "@/components/system/DataTable";
 import { columns } from "@/components/columns/namespaces";
@@ -23,15 +23,26 @@ export default function NamespacesPage() {
     position: ['bottomCenter'],
   });
 
-  // Load initial data
+  // mount
   useEffect(() => {
+    console.log("[NamespacesPage] mount");
     loadNamespacesData(1, 10);
   }, []);
 
   const loadNamespacesData = async (page = 1, size = 10) => {
+    console.log("[NamespacesPage] loadNamespacesData -> params", { page, size });
     setTableLoading(true);
+    const t0 = performance.now();
     try {
       const result = await namespacesAPI.getNamespacesList({ page, size });
+      console.log("[NamespacesPage] getNamespacesList OK", {
+        elapsedMs: +(performance.now() - t0).toFixed(1),
+        typeOfList: Array.isArray(result?.list) ? "array" : typeof result?.list,
+        listLength: Array.isArray(result?.list) ? result.list.length : 0,
+        total: result?.total,
+        sample: Array.isArray(result?.list) ? result.list[0] : result?.list,
+      });
+
       setDataSource(result.list || []);
       setPagination(prev => ({
         ...prev,
@@ -39,8 +50,15 @@ export default function NamespacesPage() {
         pageSize: size,
         total: result.total || 0,
       }));
+      console.log("[NamespacesPage] state updated", {
+        rows: (result.list || []).length,
+        pagination: { page, size, total: result.total || 0 },
+      });
     } catch (error) {
-      console.error('Error loading namespaces:', error);
+      console.log("[NamespacesPage] getNamespacesList FAIL", {
+        elapsedMs: +(performance.now() - t0).toFixed(1),
+        error,
+      });
       setDataSource([]);
     } finally {
       setTableLoading(false);
@@ -48,53 +66,80 @@ export default function NamespacesPage() {
   };
 
   const handleTableChange = (paginationInfo, filters, sorter) => {
+    console.log("[NamespacesPage] handleTableChange", { paginationInfo, filters, sorter });
     const { current, pageSize } = paginationInfo;
-    // Update pagination state with new pageSize if it changed
     if (pageSize !== pagination.pageSize) {
+      console.log("[NamespacesPage] pageSize changed -> reset current to 1");
       setPagination(prev => ({
         ...prev,
         pageSize,
-        current: 1, // Reset to first page when page size changes
+        current: 1,
       }));
     }
     loadNamespacesData(current, pageSize);
   };
 
   const handleAdd = async (values) => {
+    console.log("[NamespacesPage] handleAdd -> values", values);
+    const t0 = performance.now();
     try {
       await namespacesAPI.createNamespace(values);
+      console.log("[NamespacesPage] createNamespace OK", +(performance.now() - t0).toFixed(1), "ms");
       message.success('命名空间添加成功');
       loadNamespacesData(pagination.current, pagination.pageSize);
     } catch (error) {
-      console.error('Error adding namespace:', error);
+      console.log("[NamespacesPage] createNamespace FAIL", {
+        elapsedMs: +(performance.now() - t0).toFixed(1),
+        error,
+      });
       message.error('添加命名空间失败');
       throw error;
     }
   };
 
   const handleEdit = async (values) => {
+    console.log("[NamespacesPage] handleEdit -> values", values);
+    const t0 = performance.now();
     try {
       await namespacesAPI.updateNamespace(values);
+      console.log("[NamespacesPage] updateNamespace OK", +(performance.now() - t0).toFixed(1), "ms");
       message.success('命名空间更新成功');
       loadNamespacesData(pagination.current, pagination.pageSize);
     } catch (error) {
-      console.error('Error updating namespace:', error);
+      console.log("[NamespacesPage] updateNamespace FAIL", {
+        elapsedMs: +(performance.now() - t0).toFixed(1),
+        error,
+      });
       message.error('更新命名空间失败');
       throw error;
     }
   };
 
   const handleDelete = async (record) => {
+    console.log("[NamespacesPage] handleDelete -> record", record);
+    const t0 = performance.now();
     try {
       await namespacesAPI.deleteNamespace(record.id);
+      console.log("[NamespacesPage] deleteNamespace OK", +(performance.now() - t0).toFixed(1), "ms");
       message.success('命名空间删除成功');
       loadNamespacesData(pagination.current, pagination.pageSize);
     } catch (error) {
-      console.error('Error deleting namespace:', error);
+      console.log("[NamespacesPage] deleteNamespace FAIL", {
+        elapsedMs: +(performance.now() - t0).toFixed(1),
+        error,
+      });
       message.error('删除命名空间失败');
       throw error;
     }
   };
+
+  console.log("[NamespacesPage] render -> DataTable props", {
+    rows: dataSource.length,
+    loading: tableLoading,
+    pagination,
+    columnsCount: Array.isArray(columns) ? columns.length : 'n/a',
+    formFieldsCount: Array.isArray(formFields) ? formFields.length : 'n/a',
+  });
 
   return (
     <SystemLayout title="命名空间管理" subtitle="Namespace Management">
@@ -109,7 +154,8 @@ export default function NamespacesPage() {
         loading={tableLoading}
         pagination={pagination}
         onChange={handleTableChange}
+        notify={false}
       />
     </SystemLayout>
   );
-} 
+}

@@ -19,7 +19,7 @@ const getTimezone  = () => getCookie('timezone');
 const getCommonHeaders = (extra = {}) => {
   const base = { 'Content-Type': 'application/json' };
   const token = tokenUtils.getToken();
-  // debug: console.log('[apiClient] auth.len =', token ? token.length : 0);
+  // Auth token length debug removed
   if (token) base['Authorization'] = `Bearer ${token}`;
   base['namespace'] = getNamespace();
   const tz = getTimezone();
@@ -39,22 +39,48 @@ const makeHeaders = (extra, isFormData) => {
   return pruneUndefined(hdr);
 };
 
-// ===== 統一處理回應 =====
-const handleApiResponse = async (response) => {
+// 可選：更好除錯（保留後端 code / payload）
+class ApiError extends Error {
+  constructor(message, { code, status, payload } = {}) {
+    super(message || 'Request failed');
+    this.name = 'ApiError';
+    this.code = code;
+    this.status = status;
+    this.payload = payload;
+  }
+}
+
+export const handleApiResponse = async (response) => {
+  // 先嘗試解析 JSON；若不是 JSON 再退回純文字
+  let data = null;
+  try {
+    data = await response.clone().json();
+  } catch {
+    // ignore
+  }
+  const text = data ? null : await response.text().catch(() => null);
+
+  // HTTP 非 2xx
   if (!response.ok) {
     if (response.status === 401) {
       tokenUtils.removeTokens();
       if (typeof window !== 'undefined') window.location.href = '/adminlogin';
-      throw new Error('Unauthorized');
+      throw new ApiError('Unauthorized', { status: 401 });
     }
-    throw new Error(`HTTP error! status: ${response.status}`);
+    const msg = (data && (data.message || data.msg)) || text || response.statusText || 'Request failed';
+    throw new ApiError(msg, { code: data?.code, status: response.status, payload: data?.data });
   }
-  const data = await response.json();
-  if (data.code !== undefined && data.code !== 0) {
-    throw new Error(data.message || 'API request failed');
+
+  // 業務碼不為 0：直接拋後端 message
+  if (data?.code !== undefined && data.code !== 0) {
+    const msg = data.message || data.msg || 'API request failed';
+    throw new ApiError(msg, { code: data.code, status: response.status, payload: data?.data });
   }
-  return data;
+
+  // 正常返回
+  return data ?? text;
 };
+
 
 // ===== 主 client =====
 export const apiClient = {
@@ -142,5 +168,8 @@ export const buildQueryString = (params) => {
   });
   return sp.toString();
 };
+
+
+
 
 export { API_BASE_URL };

@@ -12,7 +12,6 @@ export const rolesAPI = {
       const response = await apiClient.get(url);
       return response.data;
     } catch (error) {
-      console.error('Get roles list error:', error);
       throw error;
     }
   },
@@ -23,7 +22,6 @@ export const rolesAPI = {
       const response = await apiClient.get(`/api/role?id=${id}`);
       return response.data;
     } catch (error) {
-      console.error('Get role by ID error:', error);
       throw error;
     }
   },
@@ -34,7 +32,6 @@ export const rolesAPI = {
       const response = await apiClient.post('/api/role', roleData);
       return response.data;
     } catch (error) {
-      console.error('Create role error:', error);
       throw error;
     }
   },
@@ -45,7 +42,6 @@ export const rolesAPI = {
       const response = await apiClient.put('/api/role', roleData);
       return response.data;
     } catch (error) {
-      console.error('Update role error:', error);
       throw error;
     }
   },
@@ -56,7 +52,6 @@ export const rolesAPI = {
       const response = await apiClient.put('/api/role/del', { id });
       return response.data;
     } catch (error) {
-      console.error('Delete role error:', error);
       throw error;
     }
   },
@@ -67,7 +62,6 @@ export const rolesAPI = {
       const response = await apiClient.get('/api/role/list?size=1000');
       return response.data;
     } catch (error) {
-      console.error('Get all roles error:', error);
       throw error;
     }
   },

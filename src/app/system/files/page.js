@@ -37,7 +37,6 @@ export default function FilesPage() {
       setDataSource(result.list);
       setPagination((prev) => ({ ...prev, current: page, pageSize: size, total: result.total }));
     } catch (error) {
-      console.error("Error loading files:", error);
       message.error("加载文件列表失败");
     } finally {
       setTableLoading(false);
@@ -58,7 +57,6 @@ export default function FilesPage() {
       message.success("文件上传成功");
       loadFilesData(pagination.current, pagination.pageSize);
     } catch (error) {
-      console.error("Error uploading file:", error);
       message.error("文件上传失败");
     }
   };
@@ -69,7 +67,6 @@ export default function FilesPage() {
       message.success("文件信息更新成功");
       loadFilesData(pagination.current, pagination.pageSize);
     } catch (error) {
-      console.error("Error updating file:", error);
       message.error("文件信息更新失败");
     }
   };
@@ -80,7 +77,6 @@ export default function FilesPage() {
       message.success("文件删除成功");
       loadFilesData(pagination.current, pagination.pageSize);
     } catch (error) {
-      console.error("Error deleting file:", error);
       message.error("文件删除失败");
     }
   };

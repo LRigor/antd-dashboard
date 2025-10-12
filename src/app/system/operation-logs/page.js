@@ -72,7 +72,6 @@ export default function OperationLogsPage() {
         total: result.total || 0,
       }));
     } catch (error) {
-      console.error("Error loading operation logs:", error);
       message.error("加载操作日志列表失败");
     } finally {
       setTableLoading(false);
@@ -95,7 +94,6 @@ export default function OperationLogsPage() {
       message.success("操作日志删除成功");
       loadOperationLogsData(pagination.current, pagination.pageSize, filters);
     } catch (error) {
-      console.error("Error deleting operation log:", error);
       message.error("删除操作日志失败");
     }
   };

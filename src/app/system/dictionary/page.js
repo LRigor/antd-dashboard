@@ -60,7 +60,6 @@ export default function DictionaryPage() {
         total: result.total || 0,
       }));
     } catch (error) {
-      console.error("Error loading dictionaries:", error);
       message.error("加载字典列表失败");
     } finally {
       setTableLoading(false);
@@ -81,7 +80,6 @@ export default function DictionaryPage() {
       message.success("字典添加成功");
       loadDictionariesData(pagination.current, pagination.pageSize, filters);
     } catch (error) {
-      console.error("Error adding dictionary:", error);
       message.error("添加字典失败");
     }
   };
@@ -92,7 +90,6 @@ export default function DictionaryPage() {
       message.success("字典更新成功");
       loadDictionariesData(pagination.current, pagination.pageSize, filters);
     } catch (error) {
-      console.error("Error updating dictionary:", error);
       message.error("更新字典失败");
     }
   };
@@ -103,7 +100,6 @@ export default function DictionaryPage() {
       message.success("字典删除成功");
       loadDictionariesData(pagination.current, pagination.pageSize, filters);
     } catch (error) {
-      console.error("Error deleting dictionary:", error);
       message.error("删除字典失败");
     }
   };

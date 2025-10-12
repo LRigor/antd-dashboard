@@ -17,30 +17,20 @@ export default function BaseLayout({ children, loading: customLoading }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   useEffect(() => {
-    console.log("[BaseLayout:mount] pathname=", pathname);
-  }, []); // 🔎 LOG（只在首挂载打一条）
+    // Mount effect
+  }, []);
   
 
   const loading = customLoading !== undefined ? customLoading : isLoading;
 
   useEffect(() => {
-    console.log(
-      "[BaseLayout:guard]",
-      "mounted=", mounted,
-      "loading=", loading,
-      "isAuthenticated=", isAuthenticated,
-      "pathname=", pathname
-    ); // 🔎 LOG：每次依赖变化都打印一次状态
-  
     if (mounted && !loading && !isAuthenticated) {
-      console.log("[BaseLayout:redirect] to /"); // 🔎 LOG：实际要跳哪里
       router.push("/?redirect=" + pathname);
     }
-  }, [mounted, loading, isAuthenticated, pathname, router]); // 🔎 LOG：把 pathname 放进依赖里，便于观察
+  }, [mounted, loading, isAuthenticated, pathname, router]);
   
 
   if (!mounted || loading) {
-    console.log("[BaseLayout:render] show <Loading/>", { mounted, loading }); // 🔎 LOG
     return (
       <div
         style={{
@@ -56,11 +46,8 @@ export default function BaseLayout({ children, loading: customLoading }) {
   }
 
   if (!isAuthenticated) {
-    console.log("[BaseLayout:render] unauthenticated -> null (pathname=", pathname, ")"); // 🔎 LOG
     return null;
   }
-
-  console.log("[BaseLayout:render] authenticated layout (pathname=", pathname, ")"); // 🔎 LOG
 
 
   return (

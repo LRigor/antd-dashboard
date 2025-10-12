@@ -12,7 +12,6 @@ export const operationLogsAPI = {
       const response = await apiClient.get(url);
       return response.data;
     } catch (error) {
-      console.error('Get operation logs list error:', error);
       throw error;
     }
   },
@@ -23,7 +22,6 @@ export const operationLogsAPI = {
       const response = await apiClient.get(`/api/operationLog?id=${id}`);
       return response.data;
     } catch (error) {
-      console.error('Get operation log by ID error:', error);
       throw error;
     }
   },
@@ -34,7 +32,6 @@ export const operationLogsAPI = {
       const response = await apiClient.put('/api/operationLog/del', { id });
       return response.data;
     } catch (error) {
-      console.error('Delete operation log error:', error);
       throw error;
     }
   },
@@ -45,7 +42,6 @@ export const operationLogsAPI = {
       const response = await apiClient.put('/api/operationLog/del', { ids });
       return response.data;
     } catch (error) {
-      console.error('Delete multiple operation logs error:', error);
       throw error;
     }
   },
@@ -60,7 +56,6 @@ export const operationLogsAPI = {
       const response = await apiClient.get(url);
       return response.data;
     } catch (error) {
-      console.error('Get operation logs by user error:', error);
       throw error;
     }
   },
@@ -81,7 +76,6 @@ export const operationLogsAPI = {
       const response = await apiClient.get(url);
       return response.data;
     } catch (error) {
-      console.error('Get operation logs by date range error:', error);
       throw error;
     }
   },
@@ -114,7 +108,6 @@ export const operationLogsAPI = {
 
       return { success: true };
     } catch (error) {
-      console.error('Export operation logs error:', error);
       throw error;
     }
   },

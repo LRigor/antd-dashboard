@@ -12,7 +12,6 @@ export const dictionariesAPI = {
       const response = await apiClient.get(url, { namespace: 1 });
       return response.data;
     } catch (error) {
-      console.error('Get dictionaries list error:', error);
       throw error;
     }
   },
@@ -23,7 +22,6 @@ export const dictionariesAPI = {
       const response = await apiClient.get(`/api/dict?id=${id}`);
       return response.data;
     } catch (error) {
-      console.error('Get dictionary by ID error:', error);
       throw error;
     }
   },
@@ -34,7 +32,6 @@ export const dictionariesAPI = {
       const response = await apiClient.post('/api/dict', dictData);
       return response.data;
     } catch (error) {
-      console.error('Create dictionary error:', error);
       throw error;
     }
   },
@@ -45,7 +42,6 @@ export const dictionariesAPI = {
       const response = await apiClient.put('/api/dict', dictData);
       return response.data;
     } catch (error) {
-      console.error('Update dictionary error:', error);
       throw error;
     }
   },
@@ -56,7 +52,6 @@ export const dictionariesAPI = {
       const response = await apiClient.put('/api/dict/del', { ids: [id] });
       return response.data;
     } catch (error) {
-      console.error('Delete dictionary error:', error);
       throw error;
     }
   },
@@ -67,7 +62,6 @@ export const dictionariesAPI = {
       const response = await apiClient.get(`/api/dict/type/${type}`);
       return response.data;
     } catch (error) {
-      console.error('Get dictionary by type error:', error);
       throw error;
     }
   },
@@ -78,7 +72,6 @@ export const dictionariesAPI = {
       const response = await apiClient.get('/api/dict/types');
       return response.data;
     } catch (error) {
-      console.error('Get dictionary types error:', error);
       throw error;
     }
   },
@@ -89,7 +82,6 @@ export const dictionariesAPI = {
       const response = await apiClient.get(`/api/dict/entries/${type}`);
       return response.data;
     } catch (error) {
-      console.error('Get dictionary entries error:', error);
       throw error;
     }
   },

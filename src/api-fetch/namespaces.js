@@ -12,7 +12,6 @@ export const namespacesAPI = {
       const response = await apiClient.get(url, { namespace: 1 });
       return response.data;
     } catch (error) {
-      console.error('Get namespaces list error:', error);
       throw error;
     }
   },
@@ -23,7 +22,6 @@ export const namespacesAPI = {
       const response = await apiClient.get(`/api/namespace?id=${id}`);
       return response.data;
     } catch (error) {
-      console.error('Get namespace by ID error:', error);
       throw error;
     }
   },
@@ -34,7 +32,6 @@ export const namespacesAPI = {
       const response = await apiClient.post('/api/namespace', namespaceData);
       return response.data;
     } catch (error) {
-      console.error('Create namespace error:', error);
       throw error;
     }
   },
@@ -45,7 +42,6 @@ export const namespacesAPI = {
       const response = await apiClient.put('/api/namespace', namespaceData);
       return response.data;
     } catch (error) {
-      console.error('Update namespace error:', error);
       throw error;
     }
   },
@@ -56,7 +52,6 @@ export const namespacesAPI = {
       const response = await apiClient.put('/api/namespace/del', { id });
       return response.data;
     } catch (error) {
-      console.error('Delete namespace error:', error);
       throw error;
     }
   },
@@ -67,7 +62,6 @@ export const namespacesAPI = {
       const response = await apiClient.get('/api/namespace/list?size=1000');
       return response.data;
     } catch (error) {
-      console.error('Get all namespaces error:', error);
       throw error;
     }
   },

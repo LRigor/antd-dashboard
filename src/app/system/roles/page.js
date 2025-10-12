@@ -38,7 +38,6 @@ export default function RolesPage() {
         total: result.total,
       }));
     } catch (error) {
-      console.error('Error loading roles:', error);
       message.error('加载角色列表失败');
     } finally {
       setTableLoading(false);
@@ -64,7 +63,6 @@ export default function RolesPage() {
       message.success('角色添加成功');
       loadRolesData(pagination.current, pagination.pageSize);
     } catch (error) {
-      console.error('Error adding role:', error);
       message.error('添加角色失败');
     }
   };
@@ -75,7 +73,6 @@ export default function RolesPage() {
       message.success('角色更新成功');
       loadRolesData(pagination.current, pagination.pageSize);
     } catch (error) {
-      console.error('Error updating role:', error);
       message.error('更新角色失败');
     }
   };
@@ -86,7 +83,6 @@ export default function RolesPage() {
       message.success('角色删除成功');
       loadRolesData(pagination.current, pagination.pageSize);
     } catch (error) {
-      console.error('Error deleting role:', error);
       message.error('删除角色失败');
     }
   };

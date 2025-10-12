@@ -81,7 +81,7 @@ export default function TopAdminNamespace({ namespaces = [], className }) {
         message.error(msg || 'set namespace failed')
       }
     } catch (err) {
-      console.error('[TopAdminNamespace] setDefaultNamespace error:', err)
+      // setDefaultNamespace error
       message.error(`切換失敗：${err?.message || String(err)}`)
     } finally {
       setLoading(false)

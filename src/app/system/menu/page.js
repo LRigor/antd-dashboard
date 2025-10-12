@@ -22,7 +22,6 @@ export default function MenuPage() {
       const result = await menusAPI.getMenusList();
       setDataSource(result.list);
     } catch (error) {
-      console.error("Error loading menus:", error);
       message.error("加载菜单列表失败");
     } finally {
       setTableLoading(false);
@@ -35,7 +34,6 @@ export default function MenuPage() {
       message.success("菜单添加成功");
       loadMenusData();
     } catch (error) {
-      console.error("Error adding menu:", error);
       message.error("添加菜单失败");
     }
   };
@@ -46,7 +44,6 @@ export default function MenuPage() {
       message.success("菜单更新成功");
       loadMenusData();
     } catch (error) {
-      console.error("Error updating menu:", error);
       message.error("更新菜单失败");
     }
   };
@@ -57,7 +54,6 @@ export default function MenuPage() {
       message.success("菜单删除成功");
       loadMenusData();
     } catch (error) {
-      console.error("Error deleting menu:", error);
       message.error("删除菜单失败");
     }
   };

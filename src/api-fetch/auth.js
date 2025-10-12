@@ -50,23 +50,21 @@ export const authAPI = {
       }
       throw new Error('No new token received');
     } catch (error) {
-      console.error('Token refresh error:', error);
       tokenUtils.removeTokens();
       throw error;
     }
   },
 
-  // Get current user profile（改成實際的 info 端點，且不要再用 .data）
-  getCurrentUser: async () => {
-    try {
-      const res = await apiClient.get('/api/admin/info');
-      // res = { code, message, data }；直接回傳 data 給呼叫方
-      return res.data;
-    } catch (error) {
-      console.error('Get current user error:', error);
-      throw error;
-    }
-  },
+// Get current user profile（改成實際的 info 端點，且不要再用 .data）
+getCurrentUser: async () => {
+  try {
+    const res = await apiClient.get('/api/admin/info');
+    // res = { code, message, data }；直接回傳 data 給呼叫方
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+},
 
   // Check if user is authenticated
   isAuthenticated: () => {

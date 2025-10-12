@@ -1,4 +1,3 @@
-// src/app/xxxx/admins/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -8,34 +7,59 @@ import DataTable from "@/components/system/DataTable";
 import { columns } from "@/components/columns/admins";
 import { fields as formFields } from "@/components/fields/admins";
 import { adminsAPI } from "@/api-fetch";
-
-// ===== Debug 開關 & 小工具 =====
-const ADMIN_DEBUG = true; // 關閉改成 false
-const dbg = (...args) => ADMIN_DEBUG && console.debug("[AdminsPage]", ...args);
-const err = (...args) => console.error("[AdminsPage]", ...args);
+import { useUser } from "@/components/header/useUser";
 
 /** 從 row.namespaces[] 提取單一 namespace 值（字串），優先 isDefault=1，否則取第一個 */
 function extractNamespaceId(row) {
-  if (row?.namespace != null) return String(row.namespace);
+  console.log("[AdminsPage] extractNamespaceId -> row.id:", row?.id, "namespaces:", row?.namespaces, "namespace:", row?.namespace);
+  if (row?.namespace != null) {
+    const v = String(row.namespace);
+    console.log("[AdminsPage] extractNamespaceId -> use row.namespace =", v);
+    return v;
+  }
 
   const nsList = Array.isArray(row?.namespaces) ? row.namespaces : [];
   const def = nsList.find((x) => Number(x?.isDefault) === 1);
-  if (def?.namespace != null) return String(def.namespace);
+  if (def?.namespace != null) {
+    const v = String(def.namespace);
+    console.log("[AdminsPage] extractNamespaceId -> use default namespaces =", v, "raw default:", def);
+    return v;
+  }
 
-  if (nsList[0]?.namespace != null) return String(nsList[0].namespace);
+  if (nsList[0]?.namespace != null) {
+    const v = String(nsList[0].namespace);
+    console.log("[AdminsPage] extractNamespaceId -> use first namespaces =", v);
+    return v;
+  }
 
+  console.log("[AdminsPage] extractNamespaceId -> no namespace found");
   return undefined;
 }
 
 /** 把資料扁平化，補上 row.namespace（字串）供表格/表單使用 */
 function normalizeAdminRow(row) {
-  return {
-    ...row,
-    namespace: extractNamespaceId(row), // 統一字串，方便 Select.value 對得上
-  };
+  const ns = extractNamespaceId(row);
+  const out = { ...row, namespace: ns };
+  console.log("[AdminsPage] normalizeAdminRow -> id:", row?.id, "=> namespace:", ns);
+  return out;
+}
+
+/** 處理 namespaces 陣列，轉成純 ID 陣列（number[]） */
+function processNamespaces(values) {
+  console.log("[AdminsPage] processNamespaces <- values.namespaces:", values?.namespaces, "values.namespace:", values?.namespace);
+  let namespaces = Array.isArray(values.namespaces) ? values.namespaces : [];
+  if (!namespaces.length && values.namespace != null && values.namespace !== "") {
+    namespaces = [values.namespace];
+  }
+  const out = namespaces
+    .map((n) => (typeof n === "object" ? Number(n.namespace ?? n.id ?? n.value) : Number(n)))
+    .filter((n) => Number.isFinite(n));
+  console.log("[AdminsPage] processNamespaces ->", out);
+  return out;
 }
 
 export default function AdminsPage() {
+  const { user } = useUser(); // 取得當前管理員 ID 當 operator_id
   // 搜尋表單
   const [searchForm] = Form.useForm();
 
@@ -62,38 +86,33 @@ export default function AdminsPage() {
 
   // 首次載入
   useEffect(() => {
-    dbg("mount -> init load with", { page: 1, size: pagination.pageSize, filters });
+    console.log("[AdminsPage] mount -> initial load");
     loadAdminsData(1, pagination.pageSize, filters);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 取得列表
-  const loadAdminsData = async (
-    page = 1,
-    size = 10,
-    cond = filters
-  ) => {
+  const loadAdminsData = async (page = 1, size = 10, cond = filters) => {
+    console.log("[AdminsPage] loadAdminsData -> params", { page, size, cond });
     setTableLoading(true);
+    const t0 = performance.now();
     try {
-      dbg("loadAdminsData -> req", { page, size, cond });
       const result = await adminsAPI.getAdminsList({ page, size, ...cond });
-      dbg("loadAdminsData <- raw", result);
-
       const data = result?.data || result;
       const list = Array.isArray(data?.list) ? data.list : [];
       const total = Number(data?.total) || 0;
+      console.log("[AdminsPage] getAdminsList OK", {
+        elapsedMs: +(performance.now() - t0).toFixed(1),
+        listLen: list.length,
+        total,
+        sample: list[0],
+      });
 
-      // ✅ 扁平化 namespace
+      // 扁平化 namespace
       const normalizedList = list.map(normalizeAdminRow);
 
-      if (ADMIN_DEBUG) {
-        const sample = normalizedList[0];
-        dbg("loadAdminsData <- parsed", {
-          total,
-          listLen: list.length,
-          sample: sample ? { id: sample.id, uname: sample.uname, namespace: sample.namespace } : null,
-        });
-      }
+      // 檢視前 3 筆扁平化結果
+      console.log("[AdminsPage] normalizedList sample(3) =", normalizedList.slice(0, 3));
 
       setDataSource(normalizedList);
       setPagination((prev) => ({
@@ -102,8 +121,9 @@ export default function AdminsPage() {
         pageSize: size,
         total,
       }));
+      console.log("[AdminsPage] state updated -> pagination", { page, size, total });
     } catch (e) {
-      err("Error loading admins:", e);
+      console.log("[AdminsPage] getAdminsList FAIL", e);
       message.error("加载管理员列表失败");
     } finally {
       setTableLoading(false);
@@ -112,74 +132,101 @@ export default function AdminsPage() {
 
   // 分頁/排序/篩選變更
   const handleTableChange = (paginationInfo) => {
+    console.log("[AdminsPage] handleTableChange", { paginationInfo });
     const { current, pageSize } = paginationInfo;
     const nextPage = pageSize !== pagination.pageSize ? 1 : current;
-    dbg("handleTableChange", {
-      from: { current: pagination.current, pageSize: pagination.pageSize },
-      to: { current, pageSize },
-      finalNextPage: nextPage,
-      filters,
-    });
     setPagination((prev) => ({ ...prev, pageSize, current: nextPage }));
     loadAdminsData(nextPage, pageSize, filters);
   };
 
   // 新增
   const handleAdd = async (values) => {
-    // 若後端期望 number，把字串轉回 number
-    const payload = {
-      ...values,
-      namespace:
-        values?.namespace != null && values.namespace !== ""
-          ? Number(values.namespace)
-          : values?.namespace,
-    };
+    console.log("[AdminsPage] handleAdd <- form values", values);
+    const namespaces = processNamespaces(values);
+    if (!namespaces.length) {
+      message.error("請至少選擇一個命名空間");
+      return;
+    }
 
-    dbg("handleAdd -> payload", payload);
+    if (!values.pass || String(values.pass).startsWith("$2a$")) {
+      message.error("請輸入明文密碼");
+      return;
+    }
+
+    const payload = {
+      operator_id: Number(user?.id ?? 0),
+      rid: Number(values.rid),
+      uname: values.uname,
+      pass: values.pass,
+      icon: values.icon || "",
+      desc: values.desc || "",
+      status: String(values.status ?? ""),
+      level: values.level != null ? String(values.level) : "",
+      utc: values.utc || "",
+      namespaces,
+    };
+    console.log("[AdminsPage] handleAdd -> payload", payload);
+
     try {
-      const res = await adminsAPI.createAdmin(payload);
-      dbg("handleAdd <- res", res);
+      await adminsAPI.createAdmin(payload);
+      console.log("[AdminsPage] createAdmin OK");
       message.success("管理员添加成功");
       loadAdminsData(pagination.current, pagination.pageSize, filters);
     } catch (e) {
-      err("Error adding admin:", e);
-      message.error("添加管理员失败");
+      console.log("[AdminsPage] createAdmin FAIL", e);
+      message.error(e?.message || "添加管理员失败");
     }
   };
 
   // 編輯
   const handleEdit = async (values) => {
-    // 同上：namespace 轉回 number
-    const payload = {
-      ...values,
-      namespace:
-        values?.namespace != null && values.namespace !== ""
-          ? Number(values.namespace)
-          : values?.namespace,
-    };
+    console.log("[AdminsPage] handleEdit <- form values", values);
+    const namespaces = processNamespaces(values);
+    if (!namespaces.length) {
+      message.error('請至少選擇一個命名空間');
+      return;
+    }
 
-    dbg("handleEdit -> payload", payload);
+    const passPart =
+      values.pass && !String(values.pass).startsWith('$2a$')
+        ? { pass: values.pass }
+        : {};
+
+    const payload = {
+      operator_id: Number(user?.id ?? 0),
+      id: Number(values.id),
+      rid: Number(values.rid),
+      icon: values.icon || '',
+      desc: values.desc || '',
+      status: String(values.status ?? ''),
+      level: values.level != null ? String(values.level) : '',
+      utc: values.utc || '',
+      namespaces,
+      ...passPart,
+    };
+    console.log("[AdminsPage] handleEdit -> payload", payload);
+
     try {
-      const res = await adminsAPI.updateAdmin(payload);
-      dbg("handleEdit <- res", res);
-      message.success("管理员更新成功");
+      await adminsAPI.updateAdmin(payload);
+      console.log("[AdminsPage] updateAdmin OK");
+      message.success('管理员更新成功');
       loadAdminsData(pagination.current, pagination.pageSize, filters);
     } catch (e) {
-      err("Error updating admin:", e);
-      message.error("更新管理员失败");
+      console.log("[AdminsPage] updateAdmin FAIL", e);
+      message.error('更新管理员失败');
     }
   };
 
   // 刪除
   const handleDelete = async (record) => {
-    dbg("handleDelete -> id", record?.id);
+    console.log("[AdminsPage] handleDelete -> record", record);
     try {
-      const res = await adminsAPI.deleteAdmin(record.id);
-      dbg("handleDelete <- res", res);
+      await adminsAPI.deleteAdmin(record.id);
+      console.log("[AdminsPage] deleteAdmin OK");
       message.success("管理员删除成功");
       loadAdminsData(pagination.current, pagination.pageSize, filters);
     } catch (e) {
-      err("Error deleting admin:", e);
+      console.log("[AdminsPage] deleteAdmin FAIL", e);
       message.error("删除管理员失败");
     }
   };
@@ -188,7 +235,7 @@ export default function AdminsPage() {
   const onSearch = async () => {
     const v = await searchForm.validateFields();
     const next = { uname: (v.uname || "").trim() };
-    dbg("onSearch -> next filters", next);
+    console.log("[AdminsPage] onSearch -> filters", next);
     setFilters(next);
     setPagination((p) => ({ ...p, current: 1 }));
     loadAdminsData(1, pagination.pageSize, next);
@@ -196,24 +243,22 @@ export default function AdminsPage() {
 
   // 重置搜尋
   const onReset = () => {
-    dbg("onReset");
     searchForm.resetFields();
     const next = { uname: "" };
+    console.log("[AdminsPage] onReset -> filters", next);
     setFilters(next);
     setPagination((p) => ({ ...p, current: 1 }));
     loadAdminsData(1, pagination.pageSize, next);
   };
 
-  // 方便臨時在 Console 呼叫
-  if (ADMIN_DEBUG && typeof window !== "undefined") {
-    window.__ADMINS__ = {
-      reload: (p = pagination.current, s = pagination.pageSize) =>
-        loadAdminsData(p, s, filters),
-      setFilters,
-      getFilters: () => filters,
-      getPagination: () => pagination,
-    };
-  }
+  console.log("[AdminsPage] render -> DataTable props", {
+    rows: dataSource.length,
+    loading: tableLoading,
+    pagination,
+    columnsCount: Array.isArray(columns) ? columns.length : "n/a",
+    formFieldsCount: Array.isArray(formFields) ? formFields.length : "n/a",
+    fetchById: typeof (adminsAPI?.getAdminById) === "function" ? "function" : typeof (adminsAPI?.getAdminById),
+  });
 
   return (
     <SystemLayout title="管理员管理" subtitle="Admin Management">
@@ -255,6 +300,8 @@ export default function AdminsPage() {
         loading={tableLoading}
         pagination={pagination}
         onChange={handleTableChange}
+        // 這是為了拉出編輯時的資料
+        fetchById={adminsAPI.getAdminById}
       />
     </SystemLayout>
   );

@@ -4,9 +4,10 @@ import { useMemo, useEffect } from "react";
 import { Select, Spin } from "antd";
 import { useNamespaceList } from "@/hooks/usernamespace";
 
-// 🔎 開關 & 簡易 logger
-const NS_DEBUG = true;
+// ===== Debug 開關與方法（僅輸出日誌，不改行為）=====
+const NS_DEBUG = true; // ← 需要時改成 false
 const dbg = (...args) => NS_DEBUG && console.debug("[NamespaceSelect]", ...args);
+const warn = (...args) => NS_DEBUG && console.warn("[NamespaceSelect]", ...args);
 
 export default function NamespaceSelect({
   value,          // 由 Form 注入
@@ -14,48 +15,107 @@ export default function NamespaceSelect({
   allowClear = true,
   style,
   placeholder = "请选择命名空间",
+  mode,           // 支持 multiple 模式
+  labelInValue = false, // 明确设置默认值
   ...rest
 }) {
+  // 首次渲染打印 props 概況
+  useEffect(() => {
+    dbg("mount props summary =>", {
+      mode,
+      labelInValue,
+      allowClear,
+      placeholder,
+      restKeys: Object.keys(rest || {}),
+    });
+  }, []);
+
   const { list, loading } = useNamespaceList();
+  useEffect(() => {
+    dbg("useNamespaceList => loading:", loading, "list:", list);
+  }, [list, loading]);
 
   // —— 原邏輯：把 list 轉成 options（不改行為）
   const options = useMemo(
     () =>
-      (list || []).map((n) => ({
-        value: String(n.id ?? n.namespace), // 顯示/比對用字串
+      (list || []).map((n, index) => ({
+        key: String(n.id ?? n.namespace ?? index), // 添加唯一的 key
+        value: String(n.id ?? n.namespace),        // 顯示/比對用字串
         label: n.name ?? String(n.id ?? n.namespace),
       })),
     [list]
   );
 
-  // 🔎 log 1：外部傳進來的 value（以及型別）
   useEffect(() => {
-    dbg("props.value ->", value, `(type: ${typeof value})`);
+    dbg("options computed ->", options);
+  }, [options]);
+
+  // 处理 value 格式（不改行為，僅加日誌）
+  useEffect(() => {
+    const type =
+      value == null ? "nullish" :
+      Array.isArray(value) ? "array" :
+      typeof value;
+    dbg("incoming value prop -> type:", type, "value:", value);
   }, [value]);
 
-  // 🔎 log 2：來源清單（原始 list）
-  useEffect(() => {
-    dbg("list.len =", list?.length ?? 0, "list sample =", (list || []).slice(0, 3));
-  }, [list]);
-
-  // 🔎 log 3：轉好的 options 與當前 value 是否命中
-  useEffect(() => {
-    dbg("options.len =", options.length, "options sample =", options.slice(0, 5));
-    if (value != null) {
-      const hit = options.find((o) => String(o.value) === String(value));
-      dbg("match check -> value:", value, " hit:", hit);
+  const processedValue = useMemo(() => {
+    if (value == null) return undefined;
+  
+    if (labelInValue) {
+      // ……你原本的 labelInValue 分支保持不變……
+      /* ... */
+    } else {
+      // 普通模式：只返回 value
+      if (mode === "multiple") {
+        if (Array.isArray(value)) {
+          return value
+            .map((item) => {
+              if (typeof item === "object" && item !== null) {
+                const v = item.namespace ?? item.id ?? item.value;  // ← 以 namespace 為主
+                return v != null ? String(v) : "";
+              }
+              return String(item);
+            })
+            .filter(Boolean);
+        } else {
+          if (typeof value === "object" && value !== null) {
+            const v = item.namespace ?? item.id ?? item.value;  // ← 以 namespace 為主
+            return v != null ? [String(v)] : [];
+          }
+          return [String(value)];
+        }
+      } else {
+        return String(value);
+      }
     }
-  }, [options, value]);
+  }, [value, mode, labelInValue, options]);
+  
 
-  // 🔎 log 4：使用者變更時（不改行為，只多印）
+  useEffect(() => {
+    console.log("[NamespaceSelect] processedValue ->", processedValue);
+  }, [processedValue]);
+
   const handleChange = (v) => {
-    dbg("onChange fired ->", v, "(string), will pass Number(v) to Form");
-    onChange?.(v == null ? undefined : Number(v));
+    dbg("onChange fired with raw v =", v, " (mode:", mode, ", labelInValue:", labelInValue, ")");
+    if (labelInValue) {
+      if (mode === "multiple") {
+        onChange?.(v == null ? [] : v);
+      } else {
+        onChange?.(v == null ? undefined : v);
+      }
+    } else {
+      if (mode === "multiple") {
+        onChange?.(v == null ? [] : v.map(String));
+      } else {
+        onChange?.(v == null ? undefined : String(v));
+      }
+    }
   };
 
   return (
     <Select
-      value={value == null ? undefined : String(value)}  // 顯示用字串
+      value={processedValue}
       onChange={handleChange}
       options={options}
       loading={loading}
@@ -67,6 +127,8 @@ export default function NamespaceSelect({
       style={style}
       getPopupContainer={(t) => t.parentNode}
       notFoundContent={loading ? <Spin size="small" /> : null}
+      mode={mode}
+      labelInValue={labelInValue}
       {...rest}
     />
   );

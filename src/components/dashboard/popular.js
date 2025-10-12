@@ -56,11 +56,9 @@ export default function Popular() {
   const handleMenuClick = ({ key }) => {
     switch (key) {
       case "operation1":
-        console.log("执行操作一");
         // Add your operation one logic here
         break;
       case "operation2":
-        console.log("执行操作二");
         // Add your operation two logic here
         break;
       default:

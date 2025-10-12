@@ -9,6 +9,9 @@ export const adminsAPI = {
     const url = `/api/admin/list${queryString ? `?${queryString}` : ''}`;
     try {
       const res = await apiClient.get(url);
+      const data = res?.data || {};
+      const list = Array.isArray(data?.list) ? data.list : [];
+      const total = Number(data?.total) || 0;
       return res;
     } catch (error) { 
       throw error;
@@ -17,8 +20,9 @@ export const adminsAPI = {
 
   // Get admin by ID
   getAdminById: async (id) => {
+    const url = `/api/admin?id=${id}`;
     try {
-      const res = await apiClient.get(`/api/admin?id=${id}`);
+      const res = await apiClient.get(url);
       return res;
     } catch (error) {
       throw error;
@@ -80,7 +84,6 @@ export const adminsAPI = {
     const url = '/api/admin/info';
     try {
       const res = await apiClient.get(url);
-      // res 形如 { code, message, data }
       return res;
     } catch (err) {
       throw err;

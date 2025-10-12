@@ -11,7 +11,6 @@ export function middleware(request) { const { pathname, origin, search } = reque
 
 function withDebug(resp, info) {
   resp.headers.set('x-debug-mw', info);
-  console.log('[MW]', info);
   return resp;
 }
 
@@ -28,23 +27,13 @@ function withDebug(resp, info) {
   // 帶上 namespace（無則預設 '1'）
   const namespace = request.cookies.get('namespace')?.value || '1';
 
-  console.log(
-    '[MW:enter]',
-    'path=', pathname + search,
-    'token.len=', (request.cookies.get('token')?.value || request.cookies.get('auth-token')?.value || '').length,
-    'isProtected=', protectedRoutes.some((r) => pathname.startsWith(r)),
-    'isPublic=', publicRoutes.some((r) => pathname.startsWith(r)),
-    'origin=', origin
-  );
+  // Middleware entry
 
   // 未登入且訪問保護路由 → 轉去登入
   if (isProtectedRoute && !token) {
     const loginUrl = new URL('/', request.url);
     loginUrl.searchParams.set('redirect', pathname);
-    console.log('[MW:decision] protected & no token -> redirect', {
-      from: pathname,
-      to: loginUrl.pathname + loginUrl.search,
-    });
+    // Protected route redirect
     return withDebug(NextResponse.redirect(loginUrl), `redirect->/adminlogin from ${pathname}`);
   }
 
@@ -58,10 +47,7 @@ function withDebug(resp, info) {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
     if (apiUrl && apiUrl !== origin) {
       const externalUrl = new URL(pathname + search, apiUrl);
-      console.log('[MW:decision] rewrite to external', {
-        from: pathname + search,
-        to: externalUrl.toString(),
-      });
+      // Rewrite to external API
 
       const requestHeaders = new Headers(request.headers);
       if (token) requestHeaders.set('Authorization', `Bearer ${token}`);

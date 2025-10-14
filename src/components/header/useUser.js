@@ -18,7 +18,7 @@ export const useUser = () => {
   const [user, setUser] = useImmer(null)
 
   const swrKey = !unLogin ? 'adminInfo' : null
-
+  console.log('[useUser] swrKey =', swrKey);
   const { data, isLoading, mutate, error } = useSWRImmutable(
     swrKey,
     adminsAPI.getAdminInfo
@@ -36,6 +36,7 @@ export const useUser = () => {
   }
 
   useEffect(() => {
+    console.log('[useUser] isLoading, error, data =', { isLoading, error, data });
     if (isLoading) return
 
     if (error) {
@@ -54,7 +55,8 @@ export const useUser = () => {
       router.push('/?logged-out=true')
       return
     }
-
+    console.log('[useUser] info =', data?.data);
+    console.log('[useUser] namespaces =', data?.data?.namespaces);
     setUser(info)
 
     if (info?.gmt != null) {

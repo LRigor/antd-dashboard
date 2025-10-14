@@ -17,7 +17,7 @@ function normalizeOptions(src) {
 
 export default function DataTable(props) {
   const {
-    notify = true, //是否由DataTable來發布錯誤訊息
+    notify = false, //是否由DataTable來發布錯誤訊息
     dataSource,
     columns,
     title,

@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { Form, Input, Select, DatePicker, Button, Space, App } from "antd";
+import { useEffect, useMemo } from "react";
+import { Form, Input, Select, DatePicker } from "antd";
 import dayjs from "dayjs";
 import SystemLayout from "@/components/system";
 import DataTable from "@/components/system/DataTable";
 import { columns } from "@/components/columns/operation-logs";
 import { operationLogsAPI } from "../../../api-fetch";
+import { useSystemPage } from "@/hooks/useSystemPage";
+import { SearchForm } from "@/components/common/SearchForm";
 
 const { RangePicker } = DatePicker;
 
@@ -19,13 +21,87 @@ const METHOD_OPTIONS = [
 ];
 
 export default function OperationLogsPage() {
-  const [searchForm] = Form.useForm(); 
-  const { message } = App.useApp();
-  const [dataSource, setDataSource] = useState([]);
-  const [tableLoading, setTableLoading] = useState(false);
+  const [searchForm] = Form.useForm();
 
-  // ✅ 查詢條件集中管理
-  const [filters, setFilters] = useState({
+  // 創建適配器讓操作日誌 API 與通用 Hook 兼容
+  const operationLogsAPIAdapter = {
+    getList: operationLogsAPI.getOperationLogsList,
+    delete: operationLogsAPI.deleteOperationLog,
+  };
+
+  // 使用通用系統頁面 Hook
+  const {
+    dataSource,
+    tableLoading,
+    filters,
+    pagination,
+    loadData,
+    deleteHandler,
+    handleTableChange,
+    handleSearch,
+    handleReset,
+  } = useSystemPage(operationLogsAPIAdapter, {
+    initialFilters: {
+      uname: "",
+      method: "",
+      uri: "",
+      q: "",
+      startAt: "",
+      endAt: "",
+    },
+  });
+
+  // 初次載入
+  useEffect(() => {
+    loadData(1, pagination.pageSize, filters);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 搜尋欄位配置
+  const searchFields = [
+    {
+      name: "uname",
+      label: "操作用户",
+      component: <Input placeholder="uname" allowClear style={{ width: 160 }} />,
+    },
+    {
+      name: "method",
+      label: "方法",
+      component: <Select options={METHOD_OPTIONS} style={{ width: 140 }} />,
+    },
+    {
+      name: "uri",
+      label: "请求地址",
+      component: <Input placeholder="/api/xxx" allowClear style={{ width: 220 }} />,
+    },
+    {
+      name: "q",
+      label: "参数包含",
+      component: <Input placeholder="req 关键字" allowClear style={{ width: 200 }} />,
+    },
+    {
+      name: "createdAt",
+      label: "时间范围",
+      component: <RangePicker showTime allowClear />,
+    },
+  ];
+
+  // 搜尋值處理
+  const processSearchValues = (values) => {
+    const [start, end] = values.createdAt || [];
+    return {
+      uname: values.uname?.trim() || "",
+      method: values.method || "",
+      uri: values.uri?.trim() || "",
+      q: values.q?.trim() || "",
+      startAt: start ? dayjs(start).format("YYYY-MM-DD HH:mm:ss") : "",
+      endAt: end ? dayjs(end).format("YYYY-MM-DD HH:mm:ss") : "",
+    };
+  };
+
+  // 搜尋和重置處理
+  const onSearch = handleSearch(searchForm, processSearchValues);
+  const onReset = handleReset(searchForm, {
     uname: "",
     method: "",
     uri: "",
@@ -33,97 +109,6 @@ export default function OperationLogsPage() {
     startAt: "",
     endAt: "",
   });
-
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
-    total: 0,
-    showSizeChanger: true,
-    showQuickJumper: true,
-    showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条，共 ${total} 条`,
-    pageSizeOptions: ["10", "20", "50", "100"],
-    position: ["bottomCenter"],
-  });
-
-  // 初次載入
-  useEffect(() => {
-    loadOperationLogsData(1, pagination.pageSize, filters);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // 請求封裝（帶上分頁 + 篩選）
-  const loadOperationLogsData = async (
-    page = 1,
-    size = 10,
-    cond = filters
-  ) => {
-    setTableLoading(true);
-    try {
-      const result = await operationLogsAPI.getOperationLogsList({
-        page,
-        size,
-        ...cond,
-      });
-      setDataSource(result.list || []);
-      setPagination((prev) => ({
-        ...prev,
-        current: page,
-        pageSize: size,
-        total: result.total || 0,
-      }));
-    } catch (error) {
-      message.error("加载操作日志列表失败");
-    } finally {
-      setTableLoading(false);
-    }
-  };
-
-  // 分頁/排序改變時：保留目前 filters
-  const handleTableChange = (paginationInfo) => {
-    const { current, pageSize } = paginationInfo;
-    // pageSize 變更時，回到第一頁
-    const nextPage = pageSize !== pagination.pageSize ? 1 : current;
-    setPagination((prev) => ({ ...prev, pageSize, current: nextPage }));
-    loadOperationLogsData(nextPage, pageSize, filters);
-  };
-
-  // 刪除後重載
-  const handleDelete = async (record) => {
-    try {
-      await operationLogsAPI.deleteOperationLog(record.id);
-      message.success("操作日志删除成功");
-      loadOperationLogsData(pagination.current, pagination.pageSize, filters);
-    } catch (error) {
-      message.error("删除操作日志失败");
-    }
-  };
-
-  // 🔍 搜尋
-  const onSearch = async () => {
-    const v = await searchForm.validateFields();
-    const [start, end] = v.createdAt || [];
-    const next = {
-      uname: v.uname?.trim() || "",
-      method: v.method || "",
-      uri: v.uri?.trim() || "",
-      q: v.q?.trim() || "",
-      startAt: start ? dayjs(start).format("YYYY-MM-DD HH:mm:ss") : "",
-      endAt: end ? dayjs(end).format("YYYY-MM-DD HH:mm:ss") : "",
-    };
-    setFilters(next);
-    // 重置到第 1 頁載入
-    setPagination((p) => ({ ...p, current: 1 }));
-    loadOperationLogsData(1, pagination.pageSize, next);
-  };
-
-  // ♻️ 重置
-  const onReset = () => {
-    searchForm.resetFields();
-    const next = { uname: "", method: "", uri: "", q: "", startAt: "", endAt: "" };
-    setFilters(next);
-    setPagination((p) => ({ ...p, current: 1 }));
-    loadOperationLogsData(1, pagination.pageSize, next);
-  };
 
   // 可選：把當前條件顯示在頁面標題旁（方便除錯）
   const condText = useMemo(() => {
@@ -139,41 +124,21 @@ export default function OperationLogsPage() {
 
   return (
     <SystemLayout title="操作日志" subtitle="Operation Logs">
-      {/* 搜尋區 */}
-      <div style={{ marginBottom: 12 }}>
-        <Form form={searchForm} layout="inline" onFinish={onSearch} initialValues={{ method: "" }} style={{ rowGap: 12 }}>
-          <Form.Item label="操作用户" name="uname">
-            <Input placeholder="uname" allowClear style={{ width: 160 }} />
-          </Form.Item>
-          <Form.Item label="方法" name="method">
-            <Select options={METHOD_OPTIONS} style={{ width: 140 }} />
-          </Form.Item>
-          <Form.Item label="请求地址" name="uri">
-            <Input placeholder="/api/xxx" allowClear style={{ width: 220 }} />
-          </Form.Item>
-          <Form.Item label="参数包含" name="q">
-            <Input placeholder="req 关键字" allowClear style={{ width: 200 }} />
-          </Form.Item>
-          <Form.Item label="时间范围" name="createdAt">
-            <RangePicker showTime allowClear />
-          </Form.Item>
-          <Form.Item>
-            <Space>
-              <Button type="primary" htmlType="submit">搜尋</Button>
-              <Button onClick={onReset}>重置</Button>
-            </Space>
-          </Form.Item>
-        </Form>
-        {/* 調試用：目前條件 */}
-        {/* <div style={{ marginTop: 6, color: '#999' }}>{condText}</div> */}
-      </div>
+      <SearchForm
+        fields={searchFields}
+        onSearch={onSearch}
+        onReset={onReset}
+        form={searchForm}
+        initialValues={{ method: "" }}
+      />
+      {/* 調試用：目前條件 */}
+      {/* <div style={{ marginTop: 6, color: '#999' }}>{condText}</div> */}
 
-      {/* 列表 */}
       <DataTable
         dataSource={dataSource}
         columns={columns}
         title="操作日志列表"
-        onDelete={handleDelete}
+        onDelete={deleteHandler}
         loading={tableLoading}
         pagination={pagination}
         onChange={handleTableChange}

@@ -30,6 +30,9 @@ export default function Header() {
     { key: 'logout', icon: <LogoutOutlined />, label: 'Logout', onClick: handleLogout },
   ]
 
+  console.log('[Header] user =', user);
+console.log('[Header] namespaces from user =', user?.namespaces);
+
   return (
     <Layout.Header
       style={{

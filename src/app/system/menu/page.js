@@ -1,62 +1,37 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { message } from "antd";
+import { useEffect } from "react";
 import SystemLayout from "@/components/system";
 import DataTable from "@/components/system/DataTable";
 import { columns } from "@/components/columns/menu";
 import { fields as formFields } from "@/components/fields/menu";
 import { menusAPI } from "@/api-fetch";
+import { useSystemPage } from "@/hooks/useSystemPage";
 
 export default function MenuPage() {
-  const [dataSource, setDataSource] = useState([]);
-  const [tableLoading, setTableLoading] = useState(false);
+  // 創建適配器讓菜單 API 與通用 Hook 兼容
+  const menusAPIAdapter = {
+    getList: menusAPI.getMenusList,
+    create: menusAPI.createMenu,
+    update: menusAPI.updateMenu,
+    delete: menusAPI.deleteMenu,
+  };
+
+  // 使用通用系統頁面 Hook
+  const {
+    dataSource,
+    tableLoading,
+    loadData,
+    createHandler,
+    updateHandler,
+    deleteHandler,
+  } = useSystemPage(menusAPIAdapter, {
+    initialFilters: {},
+  });
 
   useEffect(() => {
-    loadMenusData();
+    loadData();
   }, []);
-
-  const loadMenusData = async () => {
-    setTableLoading(true);
-    try {
-      const result = await menusAPI.getMenusList();
-      setDataSource(result.list);
-    } catch (error) {
-      message.error("加载菜单列表失败");
-    } finally {
-      setTableLoading(false);
-    }
-  };
-  
-  const handleAdd = async (values) => {
-    try {
-      await menusAPI.createMenu(values);
-      message.success("菜单添加成功");
-      loadMenusData();
-    } catch (error) {
-      message.error("添加菜单失败");
-    }
-  };
-
-  const handleEdit = async (values) => {
-    try {
-      await menusAPI.updateMenu(values);
-      message.success("菜单更新成功");
-      loadMenusData();
-    } catch (error) {
-      message.error("更新菜单失败");
-    }
-  };
-
-  const handleDelete = async (record) => {
-    try {
-      await menusAPI.deleteMenu(record.id);
-      message.success("菜单删除成功");
-      loadMenusData();
-    } catch (error) {
-      message.error("删除菜单失败");
-    }
-  };
 
   return (
     <SystemLayout title="菜单管理" subtitle="Menu Management">
@@ -65,9 +40,9 @@ export default function MenuPage() {
         columns={columns}
         title="菜单列表"
         formFields={formFields}
-        onAdd={handleAdd}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
+        onAdd={createHandler}
+        onEdit={updateHandler}
+        onDelete={deleteHandler}
         loading={tableLoading}
       />
     </SystemLayout>

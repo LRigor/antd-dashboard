@@ -1,13 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Form, Input, Button, Space, App } from "antd";
+import { useEffect } from "react";
+import { Form, Input, App } from "antd";
 import SystemLayout from "@/components/system";
 import DataTable from "@/components/system/DataTable";
 import { columns } from "@/components/columns/admins";
 import { fields as formFields } from "@/components/fields/admins";
 import { adminsAPI } from "@/api-fetch";
 import { useUser } from "@/components/header/useUser";
+import { useSystemPage } from "@/hooks/useSystemPage";
+import { SearchForm } from "@/components/common/SearchForm";
+
 
 /** 從 row.namespaces[] 提取單一 namespace 值（字串），優先 isDefault=1，否則取第一個 */
 function extractNamespaceId(row) {
@@ -60,86 +63,81 @@ function processNamespaces(values) {
 
 export default function AdminsPage() {
   const { user } = useUser(); // 取得當前管理員 ID 當 operator_id
-  // 搜尋表單
   const [searchForm] = Form.useForm();
-
-  // 表格資料
-  const [dataSource, setDataSource] = useState([]);
   const { message } = App.useApp();
-  const [tableLoading, setTableLoading] = useState(false);
 
-  // 搜尋條件
-  const [filters, setFilters] = useState({ uname: "" });
+  // 創建適配器讓管理員 API 與通用 Hook 兼容
+  const adminsAPIAdapter = {
+    getList: async (params) => {
+      const res = await adminsAPI.getAdminsList(params);
+      const list =
+        res?.data?.list ?? res?.list ?? (Array.isArray(res?.data) ? res.data : []);
+      const total = res?.data?.total ?? res?.total ?? list.length;
+      return { list, total };
+    },
+    create: adminsAPI.createAdmin,
+    update: adminsAPI.updateAdmin,
+    delete: adminsAPI.deleteAdmin,
+  };
 
-  // 分頁
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
-    total: 0,
-    showSizeChanger: true,
-    showQuickJumper: true,
-    showTotal: (total, range) =>
-      `第 ${range[0]}-${range[1]} 条，共 ${total} 条`,
-    pageSizeOptions: ["10", "20", "50", "100"],
-    position: ["bottomCenter"],
+  // 使用通用系統頁面 Hook
+  const {
+    dataSource,
+    tableLoading,
+    filters,
+    pagination,
+    loadData,
+    createHandler,
+    updateHandler,
+    deleteHandler,
+    handleTableChange,
+    handleSearch,
+    handleReset,
+  } = useSystemPage(adminsAPIAdapter, {
+    initialFilters: { uname: "" },
+    transformData: (data) => {
+      console.log("[AdminsPage] transformData <-", data);
+      const rows =
+        Array.isArray(data) ? data
+        : Array.isArray(data?.list) ? data.list
+        : Array.isArray(data?.List) ? data.List
+        : Array.isArray(data?.data?.list) ? data.data.list
+        : Array.isArray(data?.data) ? data.data
+        : [];
+    
+      return rows.map(normalizeAdminRow);
+    },
   });
 
   // 首次載入
   useEffect(() => {
     console.log("[AdminsPage] mount -> initial load");
-    loadAdminsData(1, pagination.pageSize, filters);
+    loadData(1, pagination.pageSize, filters);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 取得列表
-  const loadAdminsData = async (page = 1, size = 10, cond = filters) => {
-    console.log("[AdminsPage] loadAdminsData -> params", { page, size, cond });
-    setTableLoading(true);
-    const t0 = performance.now();
-    try {
-      const result = await adminsAPI.getAdminsList({ page, size, ...cond });
-      const data = result?.data || result;
-      const list = Array.isArray(data?.list) ? data.list : [];
-      const total = Number(data?.total) || 0;
-      console.log("[AdminsPage] getAdminsList OK", {
-        elapsedMs: +(performance.now() - t0).toFixed(1),
-        listLen: list.length,
-        total,
-        sample: list[0],
-      });
+  // 搜尋欄位配置
+  const searchFields = [
+    {
+      name: "uname",
+      label: "用户名",
+      component: (
+        <Input
+          placeholder="uname"
+          allowClear
+          style={{ width: 200 }}
+          data-field="search-uname"
+        />
+      ),
+    },
+  ];
 
-      // 扁平化 namespace
-      const normalizedList = list.map(normalizeAdminRow);
+  // 搜尋值處理
+  const processSearchValues = (values) => ({
+    uname: (values.uname || "").trim(),
+  });
 
-      // 檢視前 3 筆扁平化結果
-      console.log("[AdminsPage] normalizedList sample(3) =", normalizedList.slice(0, 3));
-
-      setDataSource(normalizedList);
-      setPagination((prev) => ({
-        ...prev,
-        current: page,
-        pageSize: size,
-        total,
-      }));
-      console.log("[AdminsPage] state updated -> pagination", { page, size, total });
-    } catch (e) {
-      console.log("[AdminsPage] getAdminsList FAIL", e);
-      message.error("加载管理员列表失败");
-    } finally {
-      setTableLoading(false);
-    }
-  };
-
-  // 分頁/排序/篩選變更
-  const handleTableChange = (paginationInfo) => {
-    console.log("[AdminsPage] handleTableChange", { paginationInfo });
-    const { current, pageSize } = paginationInfo;
-    const nextPage = pageSize !== pagination.pageSize ? 1 : current;
-    setPagination((prev) => ({ ...prev, pageSize, current: nextPage }));
-    loadAdminsData(nextPage, pageSize, filters);
-  };
-
-  // 新增
+  // 新增（包含特殊邏輯）
   const handleAdd = async (values) => {
     console.log("[AdminsPage] handleAdd <- form values", values);
     const namespaces = processNamespaces(values);
@@ -167,18 +165,10 @@ export default function AdminsPage() {
     };
     console.log("[AdminsPage] handleAdd -> payload", payload);
 
-    try {
-      await adminsAPI.createAdmin(payload);
-      console.log("[AdminsPage] createAdmin OK");
-      message.success("管理员添加成功");
-      loadAdminsData(pagination.current, pagination.pageSize, filters);
-    } catch (e) {
-      console.log("[AdminsPage] createAdmin FAIL", e);
-      message.error(e?.message || "添加管理员失败");
-    }
+    await createHandler(payload, "管理员添加成功", "添加管理员失败");
   };
 
-  // 編輯
+  // 編輯（包含特殊邏輯）
   const handleEdit = async (values) => {
     console.log("[AdminsPage] handleEdit <- form values", values);
     const namespaces = processNamespaces(values);
@@ -206,50 +196,12 @@ export default function AdminsPage() {
     };
     console.log("[AdminsPage] handleEdit -> payload", payload);
 
-    try {
-      await adminsAPI.updateAdmin(payload);
-      console.log("[AdminsPage] updateAdmin OK");
-      message.success('管理员更新成功');
-      loadAdminsData(pagination.current, pagination.pageSize, filters);
-    } catch (e) {
-      console.log("[AdminsPage] updateAdmin FAIL", e);
-      message.error('更新管理员失败');
-    }
+    await updateHandler(payload, '管理员更新成功', '更新管理员失败');
   };
 
-  // 刪除
-  const handleDelete = async (record) => {
-    console.log("[AdminsPage] handleDelete -> record", record);
-    try {
-      await adminsAPI.deleteAdmin(record.id);
-      console.log("[AdminsPage] deleteAdmin OK");
-      message.success("管理员删除成功");
-      loadAdminsData(pagination.current, pagination.pageSize, filters);
-    } catch (e) {
-      console.log("[AdminsPage] deleteAdmin FAIL", e);
-      message.error("删除管理员失败");
-    }
-  };
-
-  // 搜尋
-  const onSearch = async () => {
-    const v = await searchForm.validateFields();
-    const next = { uname: (v.uname || "").trim() };
-    console.log("[AdminsPage] onSearch -> filters", next);
-    setFilters(next);
-    setPagination((p) => ({ ...p, current: 1 }));
-    loadAdminsData(1, pagination.pageSize, next);
-  };
-
-  // 重置搜尋
-  const onReset = () => {
-    searchForm.resetFields();
-    const next = { uname: "" };
-    console.log("[AdminsPage] onReset -> filters", next);
-    setFilters(next);
-    setPagination((p) => ({ ...p, current: 1 }));
-    loadAdminsData(1, pagination.pageSize, next);
-  };
+  // 搜尋和重置處理
+  const onSearch = handleSearch(searchForm, processSearchValues);
+  const onReset = handleReset(searchForm, { uname: "" });
 
   console.log("[AdminsPage] render -> DataTable props", {
     rows: dataSource.length,
@@ -262,32 +214,13 @@ export default function AdminsPage() {
 
   return (
     <SystemLayout title="管理员管理" subtitle="Admin Management">
-      <div style={{ marginBottom: 12 }}>
-        <Form
-          data-form="search"
-          layout="inline"
-          form={searchForm}
-          onFinish={onSearch}
-          style={{ rowGap: 12 }}
-        >
-          <Form.Item label="用户名" name="uname">
-            <Input
-              placeholder="uname"
-              allowClear
-              style={{ width: 200 }}
-              data-field="search-uname"
-            />
-          </Form.Item>
-          <Form.Item>
-            <Space>
-              <Button type="primary" htmlType="submit">
-                搜尋
-              </Button>
-              <Button onClick={onReset}>重置</Button>
-            </Space>
-          </Form.Item>
-        </Form>
-      </div>
+      <SearchForm
+        fields={searchFields}
+        onSearch={onSearch}
+        onReset={onReset}
+        form={searchForm}
+        data-form="search"
+      />
 
       <DataTable
         dataSource={dataSource}
@@ -296,7 +229,7 @@ export default function AdminsPage() {
         formFields={formFields}
         onAdd={handleAdd}
         onEdit={handleEdit}
-        onDelete={handleDelete}
+        onDelete={deleteHandler}
         loading={tableLoading}
         pagination={pagination}
         onChange={handleTableChange}

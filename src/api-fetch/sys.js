@@ -3,7 +3,7 @@ import { apiClient } from '@/api-fetch/client';
 
 export const SysAPI = {
   async setDefaultNamespace(payload) {
-    const resp = await apiClient.put('/sys/setDefaultNamespace', payload, { raw: true });
+    const resp = await apiClient.put('/api/admin/setDefaultNamespace', payload, { raw: true });
     // 兼容空体 / 文本：保证返回对象
     if (!resp) return { code: 0, msg: 'ok' };           // 后端若 204，当成功处理
     if (typeof resp === 'string' && resp.trim() === '') return { code: 0, msg: 'ok' };

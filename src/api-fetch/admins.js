@@ -82,13 +82,38 @@ export const adminsAPI = {
   // ✅ Get admin info（依賴 apiClient 統一注入 Authorization/namespace）
   getAdminInfo: async () => {
     const url = '/api/admin/info';
+    const t0 = performance.now();
+  
+    // ▶️ 發請求前
+    console.log('[adminsAPI.getAdminInfo] ->', url);
+  
     try {
       const res = await apiClient.get(url);
-      return res;
+  
+      // ◀️ 拿到回應後（只列關鍵欄位，避免太吵）
+      const ms = (performance.now() - t0).toFixed(1);
+      console.log('[adminsAPI.getAdminInfo] <-', url, `${ms}ms`, {
+        code: res?.code,
+        hasData: !!res?.data,
+        namespacesBrief: Array.isArray(res?.data?.namespaces)
+          ? res.data.namespaces.map(n => ({
+              ns: n?.namespace,
+              icon: n?.icon,
+            }))
+          : res?.data?.namespaces
+      });
+  
+      return res; // ✅ 保持原本行為
     } catch (err) {
-      throw err;
+      const ms = (performance.now() - t0).toFixed(1);
+      console.error('[adminsAPI.getAdminInfo] x', url, `${ms}ms`, {
+        message: err?.message,
+        status: err?.response?.status,
+      });
+      throw err; // ✅ 保持原本行為
     }
   },
+  
 
   // Update admin profile
   updateAdminProfile: async (adminId, profileData) => {
@@ -102,3 +127,7 @@ export const adminsAPI = {
 };
 
 export default adminsAPI;
+
+
+
+

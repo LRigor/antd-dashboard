@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { Layout, App } from "antd";          // ✅ 引入 App
-import Sidebar from "@/components/sidebar";
-import Header from "@/components/header";
-import { useUser } from "@/components/header/useUser";
-import { usePathname } from "next/navigation";
+import { useEffect, useState } from 'react';
+import { Layout, App } from 'antd';
+import { useRouter, usePathname } from 'next/navigation';   
+import Sidebar from '@/components/sidebar';
+import Header from '@/components/header';
+import { useUser } from '@/components/header/useUser';
+import RouteTabs from '@/components/header/RouteTabs';
 
 export default function BaseLayout({ children, loading: customLoading }) {
   const router = useRouter();
@@ -54,6 +54,7 @@ export default function BaseLayout({ children, loading: customLoading }) {
     <App>                                        {/* ✅ 用 App 包住全局一次 */}
       <Layout style={{ minHeight: "100vh" }}>
         <Header />
+        <RouteTabs />  
         <Layout>
           <Sidebar />
           {children}

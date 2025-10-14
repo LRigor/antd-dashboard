@@ -9,6 +9,7 @@ export default function TopAdminNamespace({ namespaces = [], className }) {
   const { message } = App.useApp()
   const [value, setValue] = useState('')
   const [loading, setLoading] = useState(false)
+  console.log('[TopAdminNamespace] render, namespaces count =', namespaces?.length, namespaces);
 
   useEffect(() => {
     // 1) 取 cookie；不在清單內則退回預設或第一個
@@ -22,10 +23,16 @@ export default function TopAdminNamespace({ namespaces = [], className }) {
       namespaces[0]?.namespace ||
       ''
 
+      console.log('[TopAdminNamespace] props.namespaces:', namespaces);
+console.log('[TopAdminNamespace] cookie.namespace =', Cookies.get('namespace'));
+console.log('[TopAdminNamespace] decided =', decided);
+
     setValue(decided ? String(decided) : '')
   }, [namespaces])
 
   const options = useMemo(() => {
+    console.log('[TopAdminNamespace] build options, count =', namespaces?.length);
+
     return namespaces
       .slice()
       .sort((a, b) => {
@@ -50,10 +57,16 @@ export default function TopAdminNamespace({ namespaces = [], className }) {
         ),
         value: String(i.namespace),
         timezone: i.timezone,
+        
       }))
+      
   }, [namespaces])
 
+  
+
+
   const onChange = async (ns) => {
+    console.log('[TopAdminNamespace] onChange -> ns:', ns);
     // 已是同值或空值就不打 API
     if (!ns || ns === value) return
     const picked = namespaces.find(i => String(i.namespace) === String(ns))

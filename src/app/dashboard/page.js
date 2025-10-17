@@ -2,11 +2,12 @@
 
 import BaseLayout from "@/components/layout/BaseLayout";
 import Dashboard from "@/components/dashboard";
+import SystemLayout from "@/components/system";
 
 export default function DashboardPage() {
   return (
-    <BaseLayout>
+    <SystemLayout title="仪表盘" subtitle="Dashboard">
       <Dashboard />
-    </BaseLayout>
+    </SystemLayout>
   );
 }

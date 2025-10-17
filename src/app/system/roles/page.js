@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { message } from "antd";
+import { message, App } from "antd";
 import SystemLayout from "@/components/system";
 import DataTable from "@/components/system/DataTable";
 import { rolesAPI } from '@/api-fetch';
@@ -11,6 +11,7 @@ import { columns } from "@/components/columns/roles";
 export default function RolesPage() {
   const [dataSource, setDataSource] = useState([]);
   const [tableLoading, setTableLoading] = useState(false);
+  const { message } = App.useApp()
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
@@ -44,38 +45,41 @@ export default function RolesPage() {
     }
   };
 
-  const handleTableChange = (paginationInfo, filters, sorter) => {
-    const { current, pageSize } = paginationInfo;
-    // Update pagination state with new pageSize if it changed
+  const normalizeMids = (m) => Array.isArray(m) ? m.map((x) => Number(x)) : []
+
+  const handleTableChange = (paginationInfo) => {
+    const { current, pageSize } = paginationInfo
     if (pageSize !== pagination.pageSize) {
-      setPagination(prev => ({
-        ...prev,
-        pageSize,
-        current: 1, // Reset to first page when page size changes
-      }));
+      setPagination(prev => ({ ...prev, pageSize, current: 1 }))
+      loadRolesData(1, pageSize)       // ← 用 1，不用旧的 current
+      return
     }
-    loadRolesData(current, pageSize);
-  };
+    loadRolesData(current, pageSize)
+  }
+  
 
   const handleAdd = async (values) => {
     try {
-      await rolesAPI.createRole(values);
-      message.success('角色添加成功');
-      loadRolesData(pagination.current, pagination.pageSize);
+      const payload = { ...values, mids: Array.isArray(values.mids) ? values.mids.map(Number) : [] }
+      await rolesAPI.createRole(payload)
+      message.success('角色添加成功')
+      loadRolesData(pagination.current, pagination.pageSize)
     } catch (error) {
-      message.error('添加角色失败');
+      message.error('添加角色失败')
     }
-  };
-
+  }
+  
   const handleEdit = async (values) => {
     try {
-      await rolesAPI.updateRole(values);
-      message.success('角色更新成功');
-      loadRolesData(pagination.current, pagination.pageSize);
+      const payload = { ...values, mids: Array.isArray(values.mids) ? values.mids.map(Number) : [] }
+      await rolesAPI.updateRole(payload)
+      message.success('角色更新成功')
+      loadRolesData(pagination.current, pagination.pageSize)
     } catch (error) {
-      message.error('更新角色失败');
+      message.error('更新角色失败')
     }
-  };
+  }
+  
 
   const handleDelete = async (record) => {
     try {

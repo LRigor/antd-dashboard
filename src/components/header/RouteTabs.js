@@ -1,22 +1,25 @@
 // RouteTabs.js
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Tabs, Button, App, Space, Tooltip } from 'antd';
+import { useEffect, useState, useMemo } from 'react';
+import { Tabs, Button, App, Tooltip } from 'antd';
 import { usePathname, useRouter } from 'next/navigation';
 import { CloseOutlined } from '@ant-design/icons';
 
+
+
 const STORAGE_TABS = 'route-tabs';
 const TITLE_KEY = (path) => `route-title:${path}`;
+// 可選：固定保留的首頁 key（若不需要就設為 null）
+const PINNED_KEY = null; // 例如 '/dashboard'
 
-// ✅ 统一取标题：优先 storage（由页面登记），再 fallback 为 path
 function getTitle(path) {
   if (!path) return '';
   try {
     const t = sessionStorage.getItem(TITLE_KEY(path));
     if (t) return t;
   } catch {}
-  return path; // fallback
+  return path;
 }
 
 export default function RouteTabs() {
@@ -26,22 +29,16 @@ export default function RouteTabs() {
 
   const [items, setItems] = useState([]);
   const [activeKey, setActiveKey] = useState('');
+  const [pendingNav, setPendingNav] = useState(null);
 
-  // 恢复 tabs
+  // 恢復 tabs
   useEffect(() => {
-    try {
-      const raw = sessionStorage.getItem(STORAGE_TABS);
-      if (raw) {
-        const restored = JSON.parse(raw).map((t) => ({
-          ...t,
-          label: getTitle(t.key), // 恢复时同步标题
-        }));
-        setItems(restored);
-      }
-    } catch {}
-  }, []);
+    if (!pendingNav) return;
+    if (pendingNav !== pathname) router.push(pendingNav);
+    setPendingNav(null);
+  }, [pendingNav, pathname, router]);
 
-  // 同步当前路由到 tabs（用登记的标题）
+  // 同步當前路由到 tabs
   useEffect(() => {
     if (!pathname) return;
     setItems((old) => {
@@ -56,7 +53,7 @@ export default function RouteTabs() {
     setActiveKey(pathname);
   }, [pathname]);
 
-  // 🔔 监听页面标题变更事件，实时更新当前 tab 文案
+  // 監聽頁面標題更新
   useEffect(() => {
     const handler = (e) => {
       const { path, title } = e.detail || {};
@@ -77,70 +74,95 @@ export default function RouteTabs() {
   };
 
   const remove = (targetKey) => {
+    let nextRoute = null;
+  
     setItems((old) => {
       const idx = old.findIndex((t) => t.key === targetKey);
       if (idx === -1) return old;
+  
       const next = old.filter((t) => t.key !== targetKey);
-
+  
       if (targetKey === activeKey) {
         const fallback = next[idx - 1] ?? next[idx] ?? null;
-        const to = fallback?.key ?? '/';
-        setActiveKey(to);
-        if (to !== pathname) router.push(to);
+        nextRoute = fallback?.key ?? '/';
       }
       sessionStorage.setItem(STORAGE_TABS, JSON.stringify(next));
       return next;
     });
+  
+    if (nextRoute) {
+      setActiveKey(nextRoute);   // ← 放到更新器外
+      setPendingNav(nextRoute);  // ← 交给 effect 里统一 router.push
+    }
   };
+  
 
-  const closeOthers = () => {
-    if (!activeKey) return;
+  // ✅ 正確版：只保留當前（可選保留固定首頁）
+  function closeOther() {
+    let nextRoute = null;
+  
     setItems((old) => {
-      const me = old.find((t) => t.key === activeKey);
-      const next = me ? [{ ...me, label: getTitle(activeKey) }] : [];
+      const keep = new Set([activeKey]);
+      if (PINNED_KEY) keep.add(PINNED_KEY);
+      const next = old.filter((t) => keep.has(t.key));
+  
       sessionStorage.setItem(STORAGE_TABS, JSON.stringify(next));
+  
+      // 计算收敛后的有效页签
+      const to = next.find((t) => t.key === activeKey)?.key ?? next[0]?.key ?? '/';
+      nextRoute = to;
+  
       return next;
     });
-    message.success('已关闭其他页签');
-  };
+  
+    if (nextRoute) {
+      setActiveKey(nextRoute);    // ← 更新器外
+      setPendingNav(nextRoute);   // ← 交给 effect 里统一 router.push
+    }
+  }
+  
+
+  // 把「關閉其它」按鈕放到 Tabs 右側，避免被裁切
+  const extraRight = useMemo(
+    () =>
+      items.length > 1 ? (
+        <Tooltip title="关闭其它页签">
+          <Button
+            type="text"
+            shape="circle"
+            size="small"
+            icon={<CloseOutlined />}
+            onClick={closeOther}
+            className="tab-close-others-btn"
+          />
+        </Tooltip>
+      ) : null,
+    [items, activeKey]
+  );
 
   return (
-    <div className="bg-white px-3 pt-2 pb-0 border-b" style={{ borderColor: 'var(--ant-color-border)' }}>
-      <Space align="center" style={{ width: '100%' }}>
-      <Tooltip title="关闭其他页签">
-  <button
-    className="tab-kawaii-close"
-    onClick={closeOthers}
-    aria-label="关闭其他页签"
-  >
-    <svg width="14" height="14" viewBox="0 0 24 24"
-         stroke="currentColor" strokeWidth="2.2"
-         strokeLinecap="round" strokeLinejoin="round" fill="none">
-      <line x1="18" y1="6" x2="6" y2="18" />
-      <line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
-  </button>
-</Tooltip>
-
-        <Tabs
-          hideAdd
-          type="editable-card"
-          items={items.map((t) => ({ key: t.key, label: t.label }))}
-          activeKey={activeKey}
-          onChange={onChange}
-          onEdit={(targetKey, action) => {
-            if (action === 'remove' && typeof targetKey === 'string') {
-              if (items.length <= 1) return;
-              remove(targetKey);
-            }
-          }}
-        />
-      </Space>
+    <div
+      className="bg-white px-3 pt-2 pb-0 border-b"
+      style={{ borderColor: 'var(--ant-color-border)' }}
+    >
+      <Tabs
+        hideAdd
+        type="editable-card"
+        items={items.map((t) => ({ key: t.key, label: t.label }))}
+        activeKey={activeKey}
+        onChange={onChange}
+        onEdit={(targetKey, action) => {
+          if (action === 'remove' && typeof targetKey === 'string') {
+            if (items.length <= 1) return;
+            remove(targetKey);
+          }
+        }}
+        tabBarExtraContent={{ right: extraRight }}
+      />
     </div>
   );
 }
 
-/** ✅ 对外导出一个页面登记标题的小钩子 */
 export function useRouteTitle(title) {
   const pathname = usePathname();
   useEffect(() => {
